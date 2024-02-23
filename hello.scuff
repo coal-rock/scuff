@@ -1,0 +1,7 @@
+function test(arg1: string, arg2: string) -> void {
+}
+
+function main() -> void {
+	test("hello,", " world!");
+}
+
