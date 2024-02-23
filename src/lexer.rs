@@ -1,3 +1,5 @@
+use crate::error::error;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenType {
     LeftParen,
@@ -216,8 +218,7 @@ impl Lexer {
         }
 
         if self.is_at_end() {
-            todo!();
-            // error(self.line, "Unterminted string.".to_string());
+            error(self.line, "Unterminted string.".to_string());
         }
 
         self.advance();
@@ -300,8 +301,7 @@ impl Lexer {
             'a'..='z' | 'A'..='Z' | '_' => self.lex_identifier(),
             _ => {
                 if !self.peek().is_ascii_whitespace() {
-                    todo!();
-                    //error(self.line, format!("Unexpected character: {:?}", char))
+                    error(self.line, format!("Unexpected character: {:?}", char))
                 }
             }
         }
