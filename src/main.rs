@@ -1,5 +1,6 @@
 mod error;
 mod lexer;
+mod parser;
 
 use crate::lexer::Lexer;
 use std::{env, fs::read_to_string};
