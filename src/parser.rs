@@ -1,4 +1,43 @@
-use crate::lexer::Token;
+use crate::{
+    error::parse_error,
+    extract,
+    token::{Token, TokenType},
+};
+
+#[derive(Debug)]
+pub enum Expr {
+    Number(f64),
+    String(String),
+    Identifier(String),
+    Binary(Box<Expr>, char, Box<Expr>),
+}
+
+#[derive(Debug)]
+pub enum VarType {
+    Number,
+    String,
+    Table,
+    Bool,
+}
+
+impl VarType {
+    fn from(token_type: TokenType) -> VarType {
+        match token_type {
+            TokenType::NumberType => VarType::Number,
+            TokenType::StringType => VarType::String,
+            TokenType::TableType => VarType::Table,
+            TokenType::BoolType => VarType::Bool,
+            _ => panic!("Expected a type, recieved: {:?}", token_type),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum Stmt {
+    Expression(Expr),
+    VariableDeclaration(String, VarType, Expr),
+    FunctionDeclaration(String, Vec<String>, Vec<Stmt>),
+}
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -13,74 +52,106 @@ impl Parser {
         }
     }
 
-    // pub fn parse(&mut self) -> Vec<Statement> {}
-}
+    // returns the type associated with the current token
+    fn current_token(&self) -> TokenType {
+        self.tokens.get(self.position).unwrap().token_type.clone()
+    }
 
-type Identifier = String;
-type Body = Vec<Statement>;
+    // returns the token including it's metadata such as line number and position
+    fn current_token_full(&self) -> &Token {
+        self.tokens.get(self.position).unwrap()
+    }
 
-#[derive(Debug, Clone)]
-pub enum ReturnType {
-    Number,
-    String,
-    Bool,
-    Table,
-    Void,
-}
+    fn advance(&mut self) -> TokenType {
+        self.position += 1;
+        self.current_token()
+    }
 
-#[derive(Debug, Clone)]
-pub struct Param {
-    pub identifier: String,
-    pub param_type: ReturnType,
-}
+    fn expect(&mut self, expected: TokenType) -> TokenType {
+        self.position += 1;
 
-#[derive(Debug, Clone)]
-pub enum Statement {
-    Function(Identifier, Vec<Param>, Body, ReturnType),
-    Let(Identifier, Expression, ReturnType),
-    If(Box<Expression>, Box<Statement>, Option<Box<Expression>>),
-    While(Box<Expression>, Box<Statement>),
-    Expression(Box<Expression>),
-}
+        if self.current_token() != expected {
+            parse_error(
+                self.current_token_full().clone(),
+                format!("Expected: {:?}, got: {:?}", expected, self.current_token()),
+            )
+        }
 
-#[derive(Debug, Clone)]
-pub enum Expression {
-    Number(f64),
-    Boolean(bool),
-    String(String),
-    Variable(Identifier),
-    Binary(Box<Expression>, BinaryOperator, Box<Expression>),
-    Assign(Identifier, Box<Expression>),
-    Error,
-    Call(Box<Expression>, Vec<Expression>),
-}
+        self.current_token()
+    }
 
-#[derive(PartialEq, PartialOrd, Copy, Clone)]
-pub enum Precedence {
-    None,
-    Assign, // =
-    Or,
-    And,
-    Equality,   // == !=
-    Comparison, // < <= > >=
-    Term,       // + -
-    Factor,     // * /
-    Unary,      // ! -
-    Call,       // ()
-    List,       // []
-    Primary,
-}
+    fn expect_multiple(&mut self, expected: Vec<TokenType>) -> TokenType {
+        self.position += 1;
 
-#[derive(Debug, PartialEq, Copy, Clone)]
-pub enum BinaryOperator {
-    Slash,
-    Star,
-    Plus,
-    Minus,
-    Greater,
-    GreaterEqual,
-    Less,
-    LessEqual,
-    BangEqual,
-    EqualEqual,
+        if !expected.contains(&self.current_token()) {
+            parse_error(
+                self.current_token_full().clone(),
+                format!(
+                    "Expected one of: {:?}, got: {:?}",
+                    expected,
+                    self.current_token()
+                ),
+            )
+        }
+
+        self.current_token()
+    }
+
+    fn parse(&mut self) -> Vec<Stmt> {
+        let mut statements = Vec::new();
+
+        while self.current_token() != TokenType::EOF {
+            statements.push(self.parse_statement());
+        }
+
+        statements
+    }
+
+    fn parse_statement(&mut self) -> Stmt {
+        match self.current_token() {
+            // let var_name: var_type = expression;
+            TokenType::Let => {
+                let ident = extract!(
+                    self.expect(TokenType::Ident(String::new())),
+                    TokenType::Ident
+                );
+
+                self.expect(TokenType::Colon);
+
+                let var_type = self.expect_multiple(vec![
+                    TokenType::BoolType,
+                    TokenType::StringType,
+                    TokenType::NumberType,
+                    TokenType::TableType,
+                ]);
+
+                self.expect(TokenType::Equal);
+                let expr = self.parse_expression();
+                self.expect(TokenType::Semicolon);
+                return Stmt::VariableDeclaration(ident, VarType::from(var_type), expr);
+            }
+            _ => panic!(),
+        }
+    }
+
+    fn parse_expression(&mut self) -> Expr {
+        match self.current_token() {
+            TokenType::Number(value) => {
+                self.advance();
+                Expr::Number(value)
+            }
+            TokenType::String(value) => {
+                self.advance();
+                Expr::String(value)
+            }
+            TokenType::Ident(value) => {
+                self.advance();
+                Expr::Identifier(value)
+            }
+            _ => panic!(
+                "token type: {:?} not expected in expression",
+                self.current_token()
+            ),
+        }
+    }
 }
