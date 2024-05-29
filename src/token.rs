@@ -33,9 +33,7 @@ pub enum TokenType {
     Ident(String),
     String(String),
     Number(f64),
-
-    True,
-    False,
+    Bool(bool),
 
     If,
     Else,

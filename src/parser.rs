@@ -9,6 +9,7 @@ pub enum Expr {
     Number(f64),
     String(String),
     Identifier(String),
+    Bool(bool),
     Binary(Box<Expr>, char, Box<Expr>),
 }
 
@@ -70,7 +71,7 @@ impl Parser {
     fn expect(&mut self, expected: TokenType) -> TokenType {
         self.position += 1;
 
-        if self.current_token() != expected {
+        if std::mem::discriminant(&self.current_token()) != std::mem::discriminant(&expected) {
             parse_error(
                 self.current_token_full().clone(),
                 format!("Expected: {:?}, got: {:?}", expected, self.current_token()),
@@ -97,11 +98,13 @@ impl Parser {
         self.current_token()
     }
 
-    fn parse(&mut self) -> Vec<Stmt> {
+    pub fn parse(&mut self) -> Vec<Stmt> {
         let mut statements = Vec::new();
 
         while self.current_token() != TokenType::EOF {
-            statements.push(self.parse_statement());
+            let statement = self.parse_statement();
+            println!("{:#?}", statement);
+            statements.push(statement);
         }
 
         statements
@@ -135,19 +138,11 @@ impl Parser {
     }
 
     fn parse_expression(&mut self) -> Expr {
-        match self.current_token() {
-            TokenType::Number(value) => {
-                self.advance();
-                Expr::Number(value)
-            }
-            TokenType::String(value) => {
-                self.advance();
-                Expr::String(value)
-            }
-            TokenType::Ident(value) => {
-                self.advance();
-                Expr::Identifier(value)
-            }
+        match self.advance() {
+            TokenType::Number(value) => Expr::Number(value),
+            TokenType::String(value) => Expr::String(value),
+            TokenType::Ident(value) => Expr::Identifier(value),
+            TokenType::Bool(value) => Expr::Bool(value),
             _ => panic!(
                 "token type: {:?} not expected in expression",
                 self.current_token()

@@ -15,8 +15,8 @@ fn main() {
     let mut lexer = Lexer::new(file_contents);
     let tokens = lexer.lex();
 
-    // let mut parser = Parser::new(tokens.clone());
+    let mut parser = Parser::new(tokens.clone());
 
-    // println!("{:#?}", tokens);
-    // println!("{:#?}", parser.parse());
+    println!("{:#?}", tokens);
+    println!("{:#?}", parser.parse());
 }
