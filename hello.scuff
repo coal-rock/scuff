@@ -7,6 +7,6 @@ function test(arg1: string, arg2: string) -> void {
 function main() -> void {
 	test();
 	test("hello,", " world!");
-	let a: number = (1 + 2);
+	let a: number = ((1 + 2) * (1 + 2));
 }
 
