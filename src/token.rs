@@ -1,23 +1,6 @@
 #[derive(Debug, Clone, PartialEq)]
-pub enum TokenType {
-    LeftParen,
-    RightParen,
-    LeftBracket,
-    RightBracket,
-    LeftBrace,
-    RightBrace,
-    Comma,
-    Dot,
-    Minus,
-    Plus,
-    Semicolon,
-    Colon,
-    Slash,
-    Star,
-    Caret,
-
+pub enum Operator {
     Bang,
-    Equal,
 
     EqualEqual,
     BangEqual,
@@ -28,7 +11,43 @@ pub enum TokenType {
     GreaterEqual,
     LessEqual,
 
+    Minus,
+    Plus,
+
+    Slash,
+    Star,
+    Caret,
+
+    // hack?
+    None,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Type {
+    Number,
+    String,
+    Bool,
+    Table,
+    Void,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum TokenType {
+    LeftParen,
+    RightParen,
+    LeftBracket,
+    RightBracket,
+    LeftBrace,
+    RightBrace,
+    Comma,
+    Dot,
+    Semicolon,
+    Colon,
+    Equal,
     Arrow,
+
+    Operator(Operator),
+    Type(Type),
 
     Ident(String),
     String(String),
@@ -43,12 +62,6 @@ pub enum TokenType {
     Continue,
     Return,
     Let,
-
-    NumberType,
-    StringType,
-    BoolType,
-    TableType,
-    VoidType,
 
     While,
     For,

@@ -1,5 +1,5 @@
 use crate::error::error;
-use crate::token::{Token, TokenType};
+use crate::token::{Operator, Token, TokenType, Type};
 
 pub struct Lexer {
     source: String,
@@ -123,11 +123,11 @@ impl Lexer {
             "true" => Some(TokenType::Bool(true)),
             "false" => Some(TokenType::Bool(false)),
             "let" => Some(TokenType::Let),
-            "number" => Some(TokenType::NumberType),
-            "string" => Some(TokenType::StringType),
-            "bool" => Some(TokenType::BoolType),
-            "table" => Some(TokenType::TableType),
-            "void" => Some(TokenType::VoidType),
+            "number" => Some(TokenType::Type(Type::Number)),
+            "string" => Some(TokenType::Type(Type::String)),
+            "bool" => Some(TokenType::Type(Type::Bool)),
+            "table" => Some(TokenType::Type(Type::Table)),
+            "void" => Some(TokenType::Type(Type::Void)),
             _ => None,
         }
     }
@@ -198,23 +198,39 @@ impl Lexer {
             '}' => self.add_token(TokenType::RightBrace),
             ',' => self.add_token(TokenType::Comma),
             '.' => self.add_token(TokenType::Dot),
-            '+' => self.add_token(TokenType::Plus),
             ';' => self.add_token(TokenType::Semicolon),
-            '*' => self.add_token(TokenType::Star),
-            '^' => self.add_token(TokenType::Caret),
             ':' => self.add_token(TokenType::Colon),
-            '!' => self.add_token_cond('=', TokenType::BangEqual, TokenType::Bang),
-            '=' => self.add_token_cond('=', TokenType::EqualEqual, TokenType::Equal),
-            '<' => self.add_token_cond('=', TokenType::LessEqual, TokenType::Less),
-            '>' => self.add_token_cond('=', TokenType::GreaterEqual, TokenType::Greater),
-            '-' => self.add_token_cond('>', TokenType::Arrow, TokenType::Minus),
+            '+' => self.add_token(TokenType::Operator(Operator::Plus)),
+            '*' => self.add_token(TokenType::Operator(Operator::Star)),
+            '^' => self.add_token(TokenType::Operator(Operator::Caret)),
+            '!' => self.add_token_cond(
+                '=',
+                TokenType::Operator(Operator::BangEqual),
+                TokenType::Operator(Operator::Bang),
+            ),
+            '=' => self.add_token_cond(
+                '=',
+                TokenType::Operator(Operator::EqualEqual),
+                TokenType::Equal,
+            ),
+            '<' => self.add_token_cond(
+                '=',
+                TokenType::Operator(Operator::LessEqual),
+                TokenType::Operator(Operator::Less),
+            ),
+            '>' => self.add_token_cond(
+                '=',
+                TokenType::Operator(Operator::GreaterEqual),
+                TokenType::Operator(Operator::Greater),
+            ),
+            '-' => self.add_token_cond('>', TokenType::Arrow, TokenType::Operator(Operator::Minus)),
             '/' => {
                 if self.compare('/') {
                     while self.peek() != '\n' && !self.is_at_end() {
                         self.advance();
                     }
                 } else {
-                    self.add_token(TokenType::Slash);
+                    self.add_token(TokenType::Operator(Operator::Slash));
                 }
             }
             '"' => self.lex_string(),

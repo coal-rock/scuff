@@ -1,7 +1,7 @@
 use crate::{
     error::parse_error,
     extract,
-    token::{Token, TokenType},
+    token::{Operator, Token, TokenType, Type},
 };
 
 #[derive(Debug)]
@@ -10,36 +10,15 @@ pub enum Expr {
     String(String),
     Identifier(String),
     Bool(bool),
-    Binary(Box<Expr>, char, Box<Expr>),
-}
-
-#[derive(Debug)]
-pub enum DataType {
-    Number,
-    String,
-    Table,
-    Bool,
-    Void,
-}
-
-impl DataType {
-    fn from(token_type: TokenType) -> DataType {
-        match token_type {
-            TokenType::NumberType => DataType::Number,
-            TokenType::StringType => DataType::String,
-            TokenType::TableType => DataType::Table,
-            TokenType::BoolType => DataType::Bool,
-            TokenType::VoidType => DataType::Void,
-            _ => panic!("Expected a type, recieved: {:?}", token_type),
-        }
-    }
+    Binary(Box<Expr>, Operator, Box<Expr>),
 }
 
 #[derive(Debug)]
 pub enum Stmt {
     Expression(Expr),
-    VariableDeclaration(String, DataType, Expr),
-    FunctionDeclaration(String, Vec<(String, DataType)>, Vec<Stmt>, DataType),
+    VariableDeclaration(String, Type, Expr),
+    FunctionDeclaration(String, Vec<(String, Type)>, Vec<Stmt>, Type),
+    FunctionCall(String, Vec<Expr>),
 }
 
 pub struct Parser {
@@ -85,6 +64,17 @@ impl Parser {
         self.current_token()
     }
 
+    fn expect_type(&mut self) -> Type {
+        extract!(self.expect(TokenType::Type(Type::Void)), TokenType::Type)
+    }
+
+    fn expect_operator(&mut self) -> Operator {
+        extract!(
+            self.expect(TokenType::Operator(Operator::None)),
+            TokenType::Operator
+        )
+    }
+
     fn expect_multiple(&mut self, expected: Vec<TokenType>) -> TokenType {
         self.position += 1;
 
@@ -100,16 +90,6 @@ impl Parser {
         }
 
         self.current_token()
-    }
-
-    fn expect_type(&mut self) -> TokenType {
-        self.expect_multiple(vec![
-            TokenType::BoolType,
-            TokenType::StringType,
-            TokenType::NumberType,
-            TokenType::TableType,
-            TokenType::VoidType,
-        ])
     }
 
     fn peek_next(&self) -> TokenType {
@@ -147,7 +127,7 @@ impl Parser {
                 let expr = self.parse_expression();
                 self.expect(TokenType::Semicolon);
                 self.advance();
-                return Stmt::VariableDeclaration(ident, DataType::from(var_type), expr);
+                return Stmt::VariableDeclaration(ident, var_type, expr);
             }
             // function function_name(arg_name: arg_type) -> return_type { body }
             TokenType::Function => {
@@ -156,7 +136,7 @@ impl Parser {
                     TokenType::Ident
                 );
 
-                let mut arguments: Vec<(String, DataType)> = Vec::new();
+                let mut args: Vec<(String, Type)> = Vec::new();
 
                 self.expect(TokenType::LeftParen);
 
@@ -174,12 +154,12 @@ impl Parser {
                         self.advance();
                     }
 
-                    arguments.push((arg_name, DataType::from(arg_type)));
+                    args.push((arg_name, arg_type));
                 }
 
                 self.advance();
                 self.expect(TokenType::Arrow);
-                let return_type = DataType::from(self.expect_type());
+                let return_type = self.expect_type();
 
                 self.expect(TokenType::LeftBrace);
                 self.advance();
@@ -192,8 +172,36 @@ impl Parser {
 
                 self.advance();
 
-                Stmt::FunctionDeclaration(function_name, arguments, body_statements, return_type)
+                Stmt::FunctionDeclaration(function_name, args, body_statements, return_type)
             }
+            TokenType::Ident(ident) => match self.peek_next() {
+                // function call
+                TokenType::LeftParen => {
+                    self.expect(TokenType::LeftParen);
+
+                    let mut args: Vec<Expr> = Vec::new();
+
+                    while self.peek_next() != TokenType::RightParen {
+                        let arg = self.parse_expression();
+
+                        if self.peek_next() == TokenType::Comma {
+                            self.advance();
+                        }
+
+                        args.push(arg);
+                    }
+
+                    self.expect(TokenType::RightParen);
+                    self.expect(TokenType::Semicolon);
+
+                    self.advance();
+                    Stmt::FunctionCall(ident, args)
+                }
+                _ => panic!(
+                    "unexpected token after parsing ident: {:?}",
+                    self.peek_next()
+                ),
+            },
             _ => panic!("Unhandled token in statement: {:?}", self.current_token()),
         }
     }
@@ -204,6 +212,13 @@ impl Parser {
             TokenType::String(value) => Expr::String(value),
             TokenType::Ident(value) => Expr::Identifier(value),
             TokenType::Bool(value) => Expr::Bool(value),
+            TokenType::LeftParen => {
+                let left = self.parse_expression();
+                let op = self.expect_operator();
+                let right = self.parse_expression();
+                self.expect(TokenType::RightParen);
+                return Expr::Binary(Box::new(left), op, Box::new(right));
+            }
             _ => panic!(
                 "token type: {:?} not expected in expression",
                 self.current_token()
