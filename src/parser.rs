@@ -14,20 +14,22 @@ pub enum Expr {
 }
 
 #[derive(Debug)]
-pub enum VarType {
+pub enum DataType {
     Number,
     String,
     Table,
     Bool,
+    Void,
 }
 
-impl VarType {
-    fn from(token_type: TokenType) -> VarType {
+impl DataType {
+    fn from(token_type: TokenType) -> DataType {
         match token_type {
-            TokenType::NumberType => VarType::Number,
-            TokenType::StringType => VarType::String,
-            TokenType::TableType => VarType::Table,
-            TokenType::BoolType => VarType::Bool,
+            TokenType::NumberType => DataType::Number,
+            TokenType::StringType => DataType::String,
+            TokenType::TableType => DataType::Table,
+            TokenType::BoolType => DataType::Bool,
+            TokenType::VoidType => DataType::Void,
             _ => panic!("Expected a type, recieved: {:?}", token_type),
         }
     }
@@ -36,8 +38,8 @@ impl VarType {
 #[derive(Debug)]
 pub enum Stmt {
     Expression(Expr),
-    VariableDeclaration(String, VarType, Expr),
-    FunctionDeclaration(String, Vec<String>, Vec<Stmt>),
+    VariableDeclaration(String, DataType, Expr),
+    FunctionDeclaration(String, Vec<(String, DataType)>, Vec<Stmt>, DataType),
 }
 
 pub struct Parser {
@@ -55,7 +57,9 @@ impl Parser {
 
     // returns the type associated with the current token
     fn current_token(&self) -> TokenType {
-        self.tokens.get(self.position).unwrap().token_type.clone()
+        let token = self.tokens.get(self.position).unwrap().token_type.clone();
+        println!("{:#?}", token);
+        token
     }
 
     // returns the token including it's metadata such as line number and position
@@ -98,6 +102,24 @@ impl Parser {
         self.current_token()
     }
 
+    fn expect_type(&mut self) -> TokenType {
+        self.expect_multiple(vec![
+            TokenType::BoolType,
+            TokenType::StringType,
+            TokenType::NumberType,
+            TokenType::TableType,
+            TokenType::VoidType,
+        ])
+    }
+
+    fn peek_next(&self) -> TokenType {
+        self.tokens
+            .get(self.position + 1)
+            .unwrap()
+            .token_type
+            .clone()
+    }
+
     pub fn parse(&mut self) -> Vec<Stmt> {
         let mut statements = Vec::new();
 
@@ -120,20 +142,59 @@ impl Parser {
                 );
 
                 self.expect(TokenType::Colon);
-
-                let var_type = self.expect_multiple(vec![
-                    TokenType::BoolType,
-                    TokenType::StringType,
-                    TokenType::NumberType,
-                    TokenType::TableType,
-                ]);
-
+                let var_type = self.expect_type();
                 self.expect(TokenType::Equal);
                 let expr = self.parse_expression();
                 self.expect(TokenType::Semicolon);
-                return Stmt::VariableDeclaration(ident, VarType::from(var_type), expr);
+                self.advance();
+                return Stmt::VariableDeclaration(ident, DataType::from(var_type), expr);
             }
-            _ => panic!(),
+            // function function_name(arg_name: arg_type) -> return_type { body }
+            TokenType::Function => {
+                let function_name = extract!(
+                    self.expect(TokenType::Ident(String::new())),
+                    TokenType::Ident
+                );
+
+                let mut arguments: Vec<(String, DataType)> = Vec::new();
+
+                self.expect(TokenType::LeftParen);
+
+                while self.peek_next() != TokenType::RightParen {
+                    let arg_name = extract!(
+                        self.expect(TokenType::Ident(String::new())),
+                        TokenType::Ident
+                    );
+
+                    self.expect(TokenType::Colon);
+
+                    let arg_type = self.expect_type();
+
+                    if self.peek_next() == TokenType::Comma {
+                        self.advance();
+                    }
+
+                    arguments.push((arg_name, DataType::from(arg_type)));
+                }
+
+                self.advance();
+                self.expect(TokenType::Arrow);
+                let return_type = DataType::from(self.expect_type());
+
+                self.expect(TokenType::LeftBrace);
+                self.advance();
+
+                let mut body_statements: Vec<Stmt> = Vec::new();
+
+                while self.current_token() != TokenType::RightBrace {
+                    body_statements.push(self.parse_statement());
+                }
+
+                self.advance();
+
+                Stmt::FunctionDeclaration(function_name, arguments, body_statements, return_type)
+            }
+            _ => panic!("Unhandled token in statement: {:?}", self.current_token()),
         }
     }
 

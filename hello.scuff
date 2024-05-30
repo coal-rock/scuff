@@ -1,6 +1,7 @@
 let x: bool = true;
 
 function test(arg1: string, arg2: string) -> void {
+	let a: bool = false;
 }
 
 function main() -> void {
