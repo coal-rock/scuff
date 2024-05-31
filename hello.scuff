@@ -24,5 +24,6 @@ function main() -> void {
 	test("hello,", " world!");
 	let a: number = ((1 + 2) * (1 + 2));
 	a = (a + 1);
+	a = x;
 }
 

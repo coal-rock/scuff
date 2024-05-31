@@ -2,6 +2,7 @@ mod compiler;
 mod error;
 mod lexer;
 mod parser;
+mod project;
 mod token;
 
 use crate::{lexer::Lexer, parser::Parser};
