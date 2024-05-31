@@ -2,11 +2,27 @@ let x: bool = true;
 
 function test(arg1: string, arg2: string) -> void {
 	let a: bool = false;
+
+	if (a == true) {
+		print("true");
+	}
+	else {
+		print("false");
+	}
+
+	if (a == true) {
+		print("true");
+	}
+
+	while (a == true) {
+		print("true");
+	}
 }
 
 function main() -> void {
 	test();
 	test("hello,", " world!");
 	let a: number = ((1 + 2) * (1 + 2));
+	a = (a + 1);
 }
 

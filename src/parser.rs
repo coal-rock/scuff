@@ -16,9 +16,12 @@ pub enum Expr {
 #[derive(Debug)]
 pub enum Stmt {
     Expression(Expr),
-    VariableDeclaration(String, Type, Expr),
-    FunctionDeclaration(String, Vec<(String, Type)>, Vec<Stmt>, Type),
-    FunctionCall(String, Vec<Expr>),
+    VariableDeclaration(String, Type, Expr), // name, type, value
+    VariableAssignment(String, Expr),
+    FunctionDeclaration(String, Vec<(String, Type)>, Vec<Stmt>, Type), // name, arguments, body, return type
+    FunctionCall(String, Vec<Expr>),                                   // name, arguments
+    If(Expr, Vec<Stmt>, Option<Vec<Stmt>>), // condition, block if true, block if false
+    While(Expr, Vec<Stmt>),                 // condition, block if true
 }
 
 pub struct Parser {
@@ -75,23 +78,6 @@ impl Parser {
         )
     }
 
-    fn expect_multiple(&mut self, expected: Vec<TokenType>) -> TokenType {
-        self.position += 1;
-
-        if !expected.contains(&self.current_token()) {
-            parse_error(
-                self.current_token_full().clone(),
-                format!(
-                    "Expected one of: {:?}, got: {:?}",
-                    expected,
-                    self.current_token()
-                ),
-            )
-        }
-
-        self.current_token()
-    }
-
     fn peek_next(&self) -> TokenType {
         self.tokens
             .get(self.position + 1)
@@ -110,6 +96,21 @@ impl Parser {
         }
 
         statements
+    }
+
+    fn parse_block(&mut self) -> Vec<Stmt> {
+        self.expect(TokenType::LeftBrace);
+        self.advance();
+
+        let mut body_statements: Vec<Stmt> = Vec::new();
+
+        while self.current_token() != TokenType::RightBrace {
+            body_statements.push(self.parse_statement());
+        }
+
+        self.advance();
+
+        body_statements
     }
 
     fn parse_statement(&mut self) -> Stmt {
@@ -160,17 +161,7 @@ impl Parser {
                 self.advance();
                 self.expect(TokenType::Arrow);
                 let return_type = self.expect_type();
-
-                self.expect(TokenType::LeftBrace);
-                self.advance();
-
-                let mut body_statements: Vec<Stmt> = Vec::new();
-
-                while self.current_token() != TokenType::RightBrace {
-                    body_statements.push(self.parse_statement());
-                }
-
-                self.advance();
+                let body_statements = self.parse_block();
 
                 Stmt::FunctionDeclaration(function_name, args, body_statements, return_type)
             }
@@ -197,11 +188,39 @@ impl Parser {
                     self.advance();
                     Stmt::FunctionCall(ident, args)
                 }
+                // variable assignment
+                TokenType::Equal => {
+                    self.expect(TokenType::Equal);
+                    let value = self.parse_expression();
+                    self.expect(TokenType::Semicolon);
+                    self.advance();
+
+                    Stmt::VariableAssignment(ident, value)
+                }
                 _ => panic!(
                     "unexpected token after parsing ident: {:?}",
                     self.peek_next()
                 ),
             },
+            TokenType::If => {
+                let condition = self.parse_expression();
+
+                let if_true = self.parse_block();
+
+                let if_false = if self.peek_next() == TokenType::LeftBrace {
+                    Some(self.parse_block())
+                } else {
+                    None
+                };
+
+                Stmt::If(condition, if_true, if_false)
+            }
+            TokenType::While => {
+                let condition = self.parse_expression();
+                let body = self.parse_block();
+
+                Stmt::While(condition, body)
+            }
             _ => panic!("Unhandled token in statement: {:?}", self.current_token()),
         }
     }
@@ -213,6 +232,7 @@ impl Parser {
             TokenType::Ident(value) => Expr::Identifier(value),
             TokenType::Bool(value) => Expr::Bool(value),
             TokenType::LeftParen => {
+                println!("parsing expression: {:?}", self.current_token());
                 let left = self.parse_expression();
                 let op = self.expect_operator();
                 let right = self.parse_expression();
