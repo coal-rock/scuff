@@ -6,7 +6,7 @@ use crate::{
     token::{Operator, Token, TokenType, Type},
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expr {
     Number(f64),
     String(String),
@@ -15,13 +15,13 @@ pub enum Expr {
     Binary(Box<Expr>, Operator, Box<Expr>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Event {
     FlagClicked,
     KeyPressed(Key),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Key {
     Any,
     Space,
@@ -32,7 +32,7 @@ pub enum Key {
     Char(char), // a..=z, 0..=9
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Stmt {
     Expression(Expr),
     VariableDeclaration(String, Type, Expr), // name, type, value

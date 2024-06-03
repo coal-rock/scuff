@@ -24,4 +24,6 @@ fn main() {
 
     let mut compiler = Compiler::new(ast);
     let project = compiler.compile();
+
+    println!("{}", serde_json::to_string_pretty(project).unwrap());
 }

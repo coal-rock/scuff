@@ -59,16 +59,22 @@ impl Target {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct Block {
     pub opcode: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub next: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub parent: Option<String>,
-    pub inputs: HashMap<String, Vec<serde_json::Value>>,
-    pub fields: HashMap<String, Vec<Option<String>>>,
-    pub shadow: bool,
-    pub top_level: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub inputs: Option<HashMap<String, serde_json::Value>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fields: Option<HashMap<String, Vec<Option<String>>>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub shadow: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub top_level: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub x: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
