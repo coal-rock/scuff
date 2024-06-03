@@ -67,6 +67,7 @@ pub enum TokenType {
     For,
 
     Function,
+    Event,
 
     EOF,
 }

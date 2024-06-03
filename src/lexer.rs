@@ -120,6 +120,7 @@ impl Lexer {
             "while" => Some(TokenType::While),
             "for" => Some(TokenType::For),
             "function" => Some(TokenType::Function),
+            "event" => Some(TokenType::Event),
             "true" => Some(TokenType::Bool(true)),
             "false" => Some(TokenType::Bool(false)),
             "let" => Some(TokenType::Let),

@@ -1,0 +1,347 @@
+{
+	"targets": [
+		{
+			"isStage": true,
+			"name": "Stage",
+			"variables": {
+				"`jEk@4|i[#Fk?(8x)AV.-my variable": [
+					"my variable",
+					0
+				],
+				".K?mWvZP5H@7|-5X_)s.": [
+					"variable_for_all_sprites",
+					"balls"
+				]
+			},
+			"lists": {},
+			"broadcasts": {},
+			"blocks": {},
+			"comments": {},
+			"currentCostume": 0,
+			"costumes": [
+				{
+					"name": "backdrop1",
+					"dataFormat": "svg",
+					"assetId": "cd21514d0531fdffb22204e0ec5ed84a",
+					"md5ext": "cd21514d0531fdffb22204e0ec5ed84a.svg",
+					"rotationCenterX": 240,
+					"rotationCenterY": 180
+				}
+			],
+			"sounds": [],
+			"volume": 100,
+			"layerOrder": 0,
+			"tempo": 60,
+			"videoTransparency": 50,
+			"videoState": "on",
+			"textToSpeechLanguage": null
+		},
+		{
+			"isStage": false,
+			"name": "Sprite1",
+			"variables": {
+				"CDCX3WoHy=~yTK,REV.#": [
+					"variable_for_sprite_only",
+					true
+				]
+			},
+			"lists": {},
+			"broadcasts": {},
+			"blocks": {
+				"c": {
+					"opcode": "procedures_definition",
+					"next": "a",
+					"parent": null,
+					"inputs": {
+						"custom_block": [
+							1,
+							"b"
+						]
+					},
+					"fields": {},
+					"shadow": false,
+					"topLevel": true,
+					"x": 102,
+					"y": 191
+				},
+				"b": {
+					"opcode": "procedures_prototype",
+					"next": null,
+					"parent": "c",
+					"inputs": {
+						"5Gt:5cf1b?B``jHKcNn1": [
+							1,
+							"f"
+						],
+						"w0L|jl(SnqB,=v(oz-gU": [
+							1,
+							"g"
+						]
+					},
+					"fields": {},
+					"shadow": true,
+					"topLevel": false,
+					"mutation": {
+						"tagName": "mutation",
+						"children": [],
+						"proccode": "test_function %s %b",
+						"argumentids": "[\"5Gt:5cf1b?B``jHKcNn1\",\"w0L|jl(SnqB,=v(oz-gU\"]",
+						"argumentnames": "[\"numer_or_text_input\",\"boolean_input\"]",
+						"argumentdefaults": "[\"\",\"false\"]",
+						"warp": "false"
+					}
+				},
+				"f": {
+					"opcode": "argument_reporter_string_number",
+					"next": null,
+					"parent": "b",
+					"inputs": {},
+					"fields": {
+						"VALUE": [
+							"numer_or_text_input",
+							null
+						]
+					},
+					"shadow": true,
+					"topLevel": false
+				},
+				"g": {
+					"opcode": "argument_reporter_boolean",
+					"next": null,
+					"parent": "b",
+					"inputs": {},
+					"fields": {
+						"VALUE": [
+							"boolean_input",
+							null
+						]
+					},
+					"shadow": true,
+					"topLevel": false
+				},
+				"a": {
+					"opcode": "data_setvariableto",
+					"next": "d",
+					"parent": "c",
+					"inputs": {
+						"VALUE": [
+							3,
+							"h",
+							[
+								10,
+								"0"
+							]
+						]
+					},
+					"fields": {
+						"VARIABLE": [
+							"variable_for_all_sprites",
+							".K?mWvZP5H@7|-5X_)s."
+						]
+					},
+					"shadow": false,
+					"topLevel": false
+				},
+				"d": {
+					"opcode": "data_setvariableto",
+					"next": null,
+					"parent": "a",
+					"inputs": {
+						"VALUE": [
+							3,
+							"i",
+							[
+								10,
+								"0"
+							]
+						]
+					},
+					"fields": {
+						"VARIABLE": [
+							"variable_for_sprite_only",
+							"CDCX3WoHy=~yTK,REV.#"
+						]
+					},
+					"shadow": false,
+					"topLevel": false
+				},
+				"h": {
+					"opcode": "argument_reporter_string_number",
+					"next": null,
+					"parent": "a",
+					"inputs": {},
+					"fields": {
+						"VALUE": [
+							"numer_or_text_input",
+							null
+						]
+					},
+					"shadow": false,
+					"topLevel": false
+				},
+				"i": {
+					"opcode": "argument_reporter_boolean",
+					"next": null,
+					"parent": "d",
+					"inputs": {},
+					"fields": {
+						"VALUE": [
+							"boolean_input",
+							null
+						]
+					},
+					"shadow": false,
+					"topLevel": false
+				},
+				"j": {
+					"opcode": "event_whenflagclicked",
+					"next": "e",
+					"parent": null,
+					"inputs": {},
+					"fields": {},
+					"shadow": false,
+					"topLevel": true,
+					"x": 682,
+					"y": 162
+				},
+				"e": {
+					"opcode": "procedures_call",
+					"next": null,
+					"parent": "j",
+					"inputs": {
+						"5Gt:5cf1b?B``jHKcNn1": [
+							1,
+							[
+								10,
+								"balls"
+							]
+						],
+						"w0L|jl(SnqB,=v(oz-gU": [
+							2,
+							"k"
+						]
+					},
+					"fields": {},
+					"shadow": false,
+					"topLevel": false,
+					"mutation": {
+						"tagName": "mutation",
+						"children": [],
+						"proccode": "test_function %s %b",
+						"argumentids": "[\"5Gt:5cf1b?B``jHKcNn1\",\"w0L|jl(SnqB,=v(oz-gU\"]",
+						"warp": "false"
+					}
+				},
+				"k": {
+					"opcode": "operator_equals",
+					"next": null,
+					"parent": "e",
+					"inputs": {
+						"OPERAND1": [
+							1,
+							[
+								10,
+								"1"
+							]
+						],
+						"OPERAND2": [
+							1,
+							[
+								10,
+								"1"
+							]
+						]
+					},
+					"fields": {},
+					"shadow": false,
+					"topLevel": false
+				}
+			},
+			"comments": {},
+			"currentCostume": 0,
+			"costumes": [
+				{
+					"name": "costume1",
+					"bitmapResolution": 1,
+					"dataFormat": "svg",
+					"assetId": "592bae6f8bb9c8d88401b54ac431f7b6",
+					"md5ext": "592bae6f8bb9c8d88401b54ac431f7b6.svg",
+					"rotationCenterX": 44,
+					"rotationCenterY": 44
+				}
+			],
+			"sounds": [],
+			"volume": 100,
+			"layerOrder": 1,
+			"visible": true,
+			"x": 0,
+			"y": 0,
+			"size": 100,
+			"direction": 105,
+			"draggable": false,
+			"rotationStyle": "all around"
+		}
+	],
+	"monitors": [
+		{
+			"id": "CDCX3WoHy=~yTK,REV.#",
+			"mode": "default",
+			"opcode": "data_variable",
+			"params": {
+				"VARIABLE": "variable_for_sprite_only"
+			},
+			"spriteName": "Sprite1",
+			"value": 0,
+			"width": 0,
+			"height": 0,
+			"x": 0,
+			"y": 32,
+			"visible": false,
+			"sliderMin": 0,
+			"sliderMax": 100,
+			"isDiscrete": true
+		},
+		{
+			"id": "`jEk@4|i[#Fk?(8x)AV.-my variable",
+			"mode": "default",
+			"opcode": "data_variable",
+			"params": {
+				"VARIABLE": "my variable"
+			},
+			"spriteName": null,
+			"value": 0,
+			"width": 0,
+			"height": 0,
+			"x": 5,
+			"y": 32,
+			"visible": false,
+			"sliderMin": 0,
+			"sliderMax": 100,
+			"isDiscrete": true
+		},
+		{
+			"id": ".K?mWvZP5H@7|-5X_)s.",
+			"mode": "default",
+			"opcode": "data_variable",
+			"params": {
+				"VARIABLE": "variable_for_all_sprites"
+			},
+			"spriteName": null,
+			"value": 0,
+			"width": 0,
+			"height": 0,
+			"x": 5,
+			"y": 32,
+			"visible": false,
+			"sliderMin": 0,
+			"sliderMax": 100,
+			"isDiscrete": true
+		}
+	],
+	"extensions": [],
+	"meta": {
+		"semver": "3.0.0",
+		"vm": "0.2.0",
+		"agent": ""
+	}
+}

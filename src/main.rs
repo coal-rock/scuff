@@ -5,7 +5,7 @@ mod parser;
 mod project;
 mod token;
 
-use crate::{lexer::Lexer, parser::Parser};
+use crate::{compiler::Compiler, lexer::Lexer, parser::Parser};
 use std::{env, fs::read_to_string};
 
 fn main() {
@@ -18,7 +18,10 @@ fn main() {
     let tokens = lexer.lex();
 
     let mut parser = Parser::new(tokens.clone());
+    let ast = parser.parse();
 
-    println!("{:#?}", tokens);
-    println!("{:#?}", parser.parse());
+    println!("{:#?}", &ast);
+
+    let mut compiler = Compiler::new(ast);
+    let project = compiler.compile();
 }

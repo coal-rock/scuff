@@ -1,3 +1,5 @@
+use std::i8;
+
 use crate::{
     error::parse_error,
     extract,
@@ -14,11 +16,29 @@ pub enum Expr {
 }
 
 #[derive(Debug)]
+pub enum Event {
+    FlagClicked,
+    KeyPressed(Key),
+}
+
+#[derive(Debug)]
+pub enum Key {
+    Any,
+    Space,
+    Up,
+    Down,
+    Left,
+    Right,
+    Char(char), // a..=z, 0..=9
+}
+
+#[derive(Debug)]
 pub enum Stmt {
     Expression(Expr),
     VariableDeclaration(String, Type, Expr), // name, type, value
     VariableAssignment(String, Expr),
     FunctionDeclaration(String, Vec<(String, Type)>, Vec<Stmt>, Type), // name, arguments, body, return type
+    EventHandler(Event, Vec<Stmt>),                                    // event, body
     FunctionCall(String, Vec<Expr>),                                   // name, arguments
     If(Expr, Vec<Stmt>, Option<Vec<Stmt>>), // condition, block if true, block if false
     While(Expr, Vec<Stmt>),                 // condition, block if true
@@ -164,6 +184,65 @@ impl Parser {
                 let body_statements = self.parse_block();
 
                 Stmt::FunctionDeclaration(function_name, args, body_statements, return_type)
+            }
+            TokenType::Event => {
+                let event_name = extract!(
+                    self.expect(TokenType::Ident(String::new())),
+                    TokenType::Ident
+                );
+
+                let event = match event_name.as_str() {
+                    "flag_clicked" => Event::FlagClicked,
+                    "key_pressed" => {
+                        self.expect(TokenType::LeftParen);
+
+                        let key = if let TokenType::Number(num) = self.peek_next() {
+                            self.advance();
+
+                            if num.fract() != 0.0 {
+                                panic!("key press must be whole number");
+                            }
+
+                            let num = num as u32;
+
+                            match num {
+                                0..=9 => Key::Char(char::from_digit(num, 10).unwrap()),
+                                _ => panic!(),
+                            }
+                        } else {
+                            let key = extract!(
+                                self.expect(TokenType::Ident(String::new())),
+                                TokenType::Ident
+                            );
+
+                            match key.as_str() {
+                                "any" => Key::Any,
+                                "space" => Key::Space,
+                                "up_arrow" => Key::Up,
+                                "down_arrow" => Key::Down,
+                                "left_arrow" => Key::Left,
+                                "right_arrow" => Key::Right,
+                                key_string if key.len() == 1 => {
+                                    let char = key_string.chars().collect::<Vec<char>>()[0];
+
+                                    match char {
+                                        'a'..='z' => Key::Char(char),
+                                        _ => panic!(),
+                                    }
+                                }
+                                _ => panic!(),
+                            }
+                        };
+
+                        self.expect(TokenType::RightParen);
+                        Event::KeyPressed(key)
+                    }
+                    _ => panic!(),
+                };
+
+                let body = self.parse_block();
+
+                Stmt::EventHandler(event, body)
             }
             TokenType::Ident(ident) => match self.peek_next() {
                 // function call
