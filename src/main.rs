@@ -6,14 +6,8 @@ mod parser;
 mod project;
 mod token;
 
-use crate::{
-    compiler::Compiler,
-    lexer::Lexer,
-    makefile::{Asset, Extension, Makefile, Sprite, Stage},
-    parser::Parser,
-};
-use std::collections::HashMap;
-use std::{env, fs::read_to_string, path::PathBuf};
+use crate::{compiler::Compiler, lexer::Lexer, makefile::Makefile, parser::Parser};
+use std::{env, fs::read_to_string};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -33,39 +27,6 @@ fn main() {
     let project = compiler.compile();
 
     println!("{}", serde_json::to_string_pretty(project).unwrap());
-
-    // let mut stages = HashMap::new();
-    // stages.insert(
-    //     "stage1".to_string(),
-    //     Stage {
-    //         script: PathBuf::from("stage.scuff"),
-    //         backdrops: vec![Asset {
-    //             name: "backdrop1".to_string(),
-    //             path: PathBuf::from("blank.svg"),
-    //         }],
-    //         sounds: vec![],
-    //     },
-    // );
-    //
-    // let mut sprites = HashMap::new();
-    // sprites.insert(
-    //     "sprite1".to_string(),
-    //     Sprite {
-    //         script: PathBuf::from("stage.scuff"),
-    //         costumes: vec![Asset {
-    //             name: "backdrop1".to_string(),
-    //             path: PathBuf::from("blank.svg"),
-    //         }],
-    //         sounds: vec![],
-    //     },
-    // );
-    //
-    // let makefile = Makefile {
-    //     project_name: "hello_world".to_string(),
-    //     stage: stages,
-    //     sprite: sprites,
-    //     extensions: vec![Extension::Pen],
-    // };
 
     let makefile: Makefile = toml::from_str(
         r#"
