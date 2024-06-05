@@ -10,9 +10,9 @@ pub struct Lexer {
 }
 
 impl Lexer {
-    pub fn new(source: String) -> Lexer {
+    pub fn new(source: &String) -> Lexer {
         Lexer {
-            source,
+            source: source.to_string(),
             tokens: Vec::new(),
             start: 0,
             current: 0,
