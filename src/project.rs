@@ -12,7 +12,7 @@ pub struct Project {
 impl Project {
     pub fn new() -> Project {
         Project {
-            targets: vec![Target::default()],
+            targets: vec![],
             monitors: Vec::new(),
             extensions: Vec::new(),
             meta: Meta::new(),
@@ -41,7 +41,7 @@ pub struct Target {
 }
 
 impl Target {
-    fn default() -> Target {
+    pub fn default() -> Target {
         Target {
             is_stage: true,
             name: "Stage".to_string(),
@@ -51,7 +51,7 @@ impl Target {
             blocks: HashMap::new(),
             comments: HashMap::new(),
             current_costume: 0,
-            costumes: vec![Costume::default()],
+            costumes: Vec::new(),
             sounds: Vec::new(),
             layer_order: 0,
             volume: 100,
@@ -113,36 +113,38 @@ pub struct Comment {
     text: String,
 }
 
-#[derive(Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct Asset {
-    // MD5 hash of the asset file
-    asset_id: String,
-    name: String,
-    md5ext: String,
-    data_format: String,
-}
+// #[derive(Serialize, Deserialize)]
+// #[serde(rename_all = "camelCase")]
+// struct Asset {
+//     // MD5 hash of the asset file
+//     asset_id: String,
+//     name: String,
+//     md5ext: String,
+//     data_format: String,
+// }
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Costume {
-    name: String,
-    data_format: String,
-    asset_id: String,
-    md5ext: String,
-    rotation_center_x: i32,
-    rotation_center_y: i32,
+    pub name: String,
+    pub data_format: String,
+    pub asset_id: String,
+    pub md5ext: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rotation_center_x: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rotation_center_y: Option<i32>,
 }
 
 impl Costume {
-    fn default() -> Costume {
+    pub fn default() -> Costume {
         Costume {
             name: "backdrop1".to_string(),
             data_format: "svg".to_string(),
             asset_id: "cd21514d0531fdffb22204e0ec5ed84a".to_string(),
             md5ext: "cd21514d0531fdffb22204e0ec5ed84a.svg".to_string(),
-            rotation_center_x: 240,
-            rotation_center_y: 180,
+            rotation_center_x: None,
+            rotation_center_y: None,
         }
     }
 }

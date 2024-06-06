@@ -9,11 +9,10 @@ mod token;
 use crate::{
     compiler::Compiler,
     lexer::Lexer,
-    makefile::{MakefileData, SpriteStageData},
+    makefile::{MakefileData, TargetData},
     parser::{Parser, Stmt},
-    token::Token,
 };
-use std::{collections::HashMap, env, fs::read_to_string, path::PathBuf};
+use std::env;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -22,28 +21,20 @@ fn main() {
     let makefile = MakefileData::parse(args[1].clone().into());
     println!("{:#?}", makefile);
 
-    let mut sprites_stages: HashMap<SpriteStageData, Vec<Stmt>> = HashMap::new();
+    let mut targets: Vec<(TargetData, Vec<Stmt>)> = vec![];
 
-    for sprite_stage in makefile.sprites_stages {
-        let mut lexer = Lexer::new(&sprite_stage.script);
+    for target in makefile.targets {
+        let mut lexer = Lexer::new(&target.script);
         let tokens = lexer.lex();
 
         let mut parser = Parser::new(tokens);
-        sprites_stages.insert(sprite_stage, parser.parse());
+        targets.push((target, parser.parse()));
     }
 
-    println!("{:#?}", sprites_stages);
+    println!("{:#?}", targets);
 
-    // let mut lexer = Lexer::new(file_contents);
-    // let tokens = lexer.lex();
-    //
-    // let mut parser = Parser::new(tokens.clone());
-    // let ast = parser.parse();
-    //
-    // println!("{:#?}", &ast);
-    //
-    // let mut compiler = Compiler::new(ast);
-    // let project = compiler.compile();
-    //
-    // println!("{}", serde_json::to_string_pretty(project).unwrap());
+    let mut compiler = Compiler::new(targets);
+    let project = compiler.compile();
+
+    println!("{}", serde_json::to_string_pretty(project).unwrap());
 }

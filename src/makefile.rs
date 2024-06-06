@@ -51,16 +51,17 @@ struct Makefile {
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct AssetData {
-    name: String,
-    content: Vec<u8>,
+    pub name: String,
+    pub path: PathBuf,
+    pub content: Vec<u8>,
 }
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct SpriteStageData {
+pub struct TargetData {
     pub name: String,
     pub is_stage: bool,
     pub script: String,
-    pub costumes_backdrops: Vec<AssetData>,
+    pub costumes: Vec<AssetData>,
     pub sounds: Vec<AssetData>,
 }
 
@@ -68,7 +69,7 @@ pub struct SpriteStageData {
 #[derive(Debug)]
 pub struct MakefileData {
     pub project_name: String,
-    pub sprites_stages: Vec<SpriteStageData>,
+    pub targets: Vec<TargetData>,
     pub extensions: Vec<Extension>,
 }
 
@@ -80,32 +81,32 @@ impl MakefileData {
         let project_path = makefile_path.clone();
         let project_path = project_path.parent().unwrap();
 
-        let mut sprites_stages: Vec<SpriteStageData> = vec![];
+        let mut targets: Vec<TargetData> = vec![];
 
         for stage in makefile.stage {
-            sprites_stages.push(SpriteStageData {
+            targets.push(TargetData {
                 name: stage.name,
-                script: read_to_string(MakefileData::get_path(project_path, stage.script)).unwrap(),
-                costumes_backdrops: MakefileData::read_assets(project_path, stage.backdrops),
-                sounds: MakefileData::read_assets(project_path, stage.sounds),
                 is_stage: true,
+                script: read_to_string(MakefileData::get_path(project_path, stage.script)).unwrap(),
+                costumes: MakefileData::read_assets(project_path, stage.backdrops),
+                sounds: MakefileData::read_assets(project_path, stage.sounds),
             });
         }
 
         for sprite in makefile.sprite {
-            sprites_stages.push(SpriteStageData {
+            targets.push(TargetData {
                 name: sprite.name,
                 is_stage: false,
                 script: read_to_string(MakefileData::get_path(project_path, sprite.script))
                     .unwrap(),
-                costumes_backdrops: MakefileData::read_assets(project_path, sprite.costumes),
+                costumes: MakefileData::read_assets(project_path, sprite.costumes),
                 sounds: MakefileData::read_assets(project_path, sprite.sounds),
             });
         }
 
         MakefileData {
             project_name: makefile.project_name,
-            sprites_stages,
+            targets,
             extensions: makefile.extensions,
         }
     }
@@ -120,6 +121,7 @@ impl MakefileData {
             .map(|asset| AssetData {
                 name: asset.name.clone(),
                 content: read(MakefileData::get_path(project_path, asset.path.clone())).unwrap(),
+                path: asset.path.clone(),
             })
             .collect()
     }

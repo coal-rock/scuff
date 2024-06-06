@@ -1,33 +1,81 @@
 use std::collections::HashMap;
 
+use md5::{Digest, Md5};
 use serde_json::json;
 
+use crate::makefile::TargetData;
 use crate::parser::{Event, Stmt};
-use crate::project::{Block, Project};
+use crate::project::{Block, Costume, Project, Target};
 
 pub struct Compiler {
-    ast: Vec<Stmt>,
+    targets: Vec<(TargetData, Vec<Stmt>)>,
+    current_target: (TargetData, Vec<Stmt>),
     project: Project,
     block_id: usize,
+    target_index: usize,
     parent: Option<usize>,
 }
 
+// TODO: fix excessive cloning
 impl Compiler {
-    pub fn new(ast: Vec<Stmt>) -> Compiler {
+    pub fn new(targets: Vec<(TargetData, Vec<Stmt>)>) -> Compiler {
         Compiler {
-            ast,
+            targets: targets.clone(),
+            current_target: targets[0].clone(),
             project: Project::new(),
             block_id: 0,
+            target_index: 0,
             parent: None,
         }
     }
 
     pub fn compile(&mut self) -> &Project {
-        let ast = self.ast.clone();
+        for target in self.targets.clone() {
+            self.current_target = target.clone();
+            self.block_id = 0;
+            self.parent = None;
 
-        for statement in ast {
-            self.compile_statement(&statement, None, None, None);
+            self.project.targets.push(Target {
+                is_stage: self.current_target.0.is_stage,
+                name: self.current_target.0.name.clone(),
+                ..Target::default()
+            });
+
+            for costume in &self.current_target.0.costumes {
+                let mut hasher = Md5::new();
+                hasher.update(&costume.content);
+                let hash = format!("{:x}", hasher.finalize());
+
+                // FIXME: what the fuck, rust moment
+                let extension = costume
+                    .path
+                    .extension()
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .to_string();
+
+                self.project.targets[self.target_index]
+                    .costumes
+                    .push(Costume {
+                        name: costume.name.clone(),
+                        data_format: extension.clone(),
+                        asset_id: hash.clone().into(),
+                        md5ext: format!("{}.{}", hash, extension),
+                        rotation_center_x: None,
+                        rotation_center_y: None,
+                    })
+            }
+
+            let ast = &self.current_target.1.clone();
+
+            for statement in ast {
+                self.compile_statement(statement, None, None, None);
+            }
+
+            self.target_index += 1;
         }
+
         //
         &self.project
     }
@@ -114,7 +162,7 @@ impl Compiler {
     }
 
     fn push_block(&mut self, block: &Block, id: usize) {
-        self.project.targets[0]
+        self.project.targets[self.target_index]
             .blocks
             .insert(id.to_string(), block.clone());
     }
