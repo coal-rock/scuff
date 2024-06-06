@@ -2,7 +2,7 @@ project_name = "hello_world"
 extensions = ["Pen"]
 
 [[stage]]
-name = "stage1"
+name = "Stage"
 script = "stage1.scuff"
 backdrops = [{ name = "backdrop1", path = "backdrop1.svg" }]
 sounds = []

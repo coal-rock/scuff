@@ -1,17 +1,22 @@
+#![recursion_limit = "256"]
 mod compiler;
 mod error;
 mod lexer;
 mod makefile;
+mod packager;
 mod parser;
 mod project;
 mod token;
+mod validate;
 
 use crate::{
     compiler::Compiler,
     lexer::Lexer,
     makefile::{MakefileData, TargetData},
     parser::{Parser, Stmt},
+    validate::validate_project,
 };
+
 use std::env;
 
 fn main() {
@@ -37,4 +42,5 @@ fn main() {
     let project = compiler.compile();
 
     println!("{}", serde_json::to_string_pretty(project).unwrap());
+    validate_project(project);
 }

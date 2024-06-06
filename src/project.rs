@@ -33,11 +33,14 @@ pub struct Target {
     pub broadcasts: HashMap<String, String>,
     pub blocks: HashMap<String, Block>,
     pub comments: HashMap<String, Comment>,
-    pub current_costume: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub current_costume: Option<i32>,
     pub costumes: Vec<Costume>,
     pub sounds: Vec<Sound>,
-    pub layer_order: i32,
-    pub volume: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub layer_order: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub volume: Option<i32>,
 }
 
 impl Target {
@@ -50,11 +53,11 @@ impl Target {
             broadcasts: HashMap::new(),
             blocks: HashMap::new(),
             comments: HashMap::new(),
-            current_costume: 0,
+            current_costume: None,
             costumes: Vec::new(),
             sounds: Vec::new(),
-            layer_order: 0,
-            volume: 100,
+            layer_order: None,
+            volume: None,
         }
     }
 }
