@@ -13,6 +13,7 @@ use crate::{
     compiler::Compiler,
     lexer::Lexer,
     makefile::{MakefileData, TargetData},
+    packager::package_project,
     parser::{Parser, Stmt},
     validate::validate_project,
 };
@@ -38,9 +39,11 @@ fn main() {
 
     println!("{:#?}", targets);
 
-    let mut compiler = Compiler::new(targets);
+    let mut compiler = Compiler::new(targets.clone());
     let project = compiler.compile();
 
     println!("{}", serde_json::to_string_pretty(project).unwrap());
     validate_project(project);
+    package_project(project, targets, "project.sb3".into());
+    println!("project written to: project.sb3")
 }
