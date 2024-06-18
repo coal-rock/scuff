@@ -33,6 +33,10 @@ fn main() {
         let mut lexer = Lexer::new(&target.script);
         let tokens = lexer.lex();
 
+        println!("------------------------------------------------------------------");
+        println!("{:#?}", tokens);
+        println!("------------------------------------------------------------------");
+
         let mut parser = Parser::new(tokens);
         targets.push((target, parser.parse()));
     }

@@ -1,17 +1,24 @@
 use std::collections::HashMap;
+use std::io::Write;
 
 use md5::{Digest, Md5};
-use serde_json::json;
+use serde_json::{json, Value};
 
 use crate::makefile::TargetData;
 use crate::parser::{Event, Stmt};
-use crate::project::{Block, Costume, Project, Target};
+use crate::project::{Block, Costume, Mutation, Project, Target};
+use crate::token::Type;
 
 pub struct Compiler {
     targets: Vec<(TargetData, Vec<Stmt>)>,
     current_target: (TargetData, Vec<Stmt>),
     project: Project,
     block_id: usize,
+    arg_id: usize,
+    /// ```
+    /// let function_table = arg_table.get(function_name)?;
+    /// let argument_id = function_table.get(argument_name)?;
+    arg_table: HashMap<String, HashMap<String, String>>,
     target_index: usize,
     parent: Option<usize>,
 }
@@ -24,6 +31,8 @@ impl Compiler {
             current_target: targets[0].clone(),
             project: Project::new(),
             block_id: 0,
+            arg_id: 0,
+            arg_table: HashMap::new(),
             target_index: 0,
             parent: None,
         }
@@ -89,7 +98,7 @@ impl Compiler {
     ) {
         match statement {
             Stmt::EventHandler(event, body) => {
-                let current_id = self.gen_id();
+                let current_id = self.gen_block_id();
 
                 match event {
                     Event::FlagClicked => {
@@ -104,7 +113,7 @@ impl Compiler {
                         );
 
                         for (idx, stmt) in body.iter().enumerate() {
-                            let id = self.gen_id();
+                            let id = self.gen_block_id();
 
                             let next_id = if (idx + 1) == body.len() {
                                 None
@@ -153,6 +162,125 @@ impl Compiler {
 
                 // self.push_block(block, id)
             }
+            Stmt::FunctionDeclaration(func_name, args, body, return_type) => {
+                let prototype_id = self.gen_block_id(); // a
+                let definition_id = self.gen_block_id(); // b
+
+                let mut prototype_inputs: HashMap<String, Value> = HashMap::new();
+                let mut definition_inputs: HashMap<String, Value> = HashMap::new();
+
+                let mut arg_blocks: Vec<(usize, Block)> = Vec::new();
+
+                let mut proc_code = func_name.clone();
+                let mut argument_ids = String::from("[");
+                let mut argument_names = String::from("[");
+                let mut argument_defaults = String::from("[");
+
+                for (index, (arg_name, arg_type)) in args.iter().enumerate() {
+                    let proc_code_frag = match arg_type {
+                        Type::Number | Type::String => " %s",
+                        Type::Bool => " %b",
+                        Type::Table => todo!(),
+                        Type::Void => todo!(),
+                    };
+
+                    proc_code.push_str(proc_code_frag);
+
+                    if index != 0 {
+                        argument_ids.push_str(",");
+                        argument_names.push_str(",");
+                        argument_defaults.push_str(",");
+                    }
+
+                    let arg_id = self.gen_arg_id().to_string();
+
+                    let arg_default = match arg_type {
+                        Type::Number | Type::String => "",
+                        Type::Bool => "false",
+                        Type::Table => todo!(),
+                        Type::Void => todo!(),
+                    };
+
+                    let arg_block_id = self.gen_block_id();
+                    prototype_inputs.insert(arg_id.clone(), json!([1, arg_block_id.to_string()]));
+
+                    let opcode = match arg_type {
+                        Type::Number | Type::String => "argument_reporter_string_number",
+                        Type::Bool => "argument_reporter_boolean",
+                        Type::Table => todo!(),
+                        Type::Void => todo!(),
+                    };
+
+                    let arg_block = Block {
+                        opcode: opcode.to_string(),
+                        parent: Some(prototype_id.to_string()),
+                        fields: Some(json!({"VALUE": [arg_name, Value::Null]})),
+                        shadow: Some(true),
+                        top_level: Some(false),
+                        ..Default::default()
+                    };
+
+                    arg_blocks.push((arg_block_id, arg_block));
+
+                    argument_ids.push_str(&format!("\"{}\"", arg_id));
+                    argument_names.push_str(&format!("\"{}\"", arg_name));
+                    argument_defaults.push_str(&format!("\"{}\"", arg_default))
+                }
+
+                argument_ids.push_str("]");
+                argument_names.push_str("]");
+                argument_defaults.push_str("]");
+
+                definition_inputs.insert(
+                    "custom_block".to_string(),
+                    json!([1, prototype_id.to_string()]),
+                );
+
+                let proc_definition = Block {
+                    opcode: "procedures_definition".to_string(),
+                    next: Some((self.block_id + 1).to_string()),
+                    inputs: Some(definition_inputs),
+                    top_level: Some(true),
+                    ..Default::default()
+                };
+
+                let proc_prototype = Block {
+                    opcode: "procedures_prototype".to_string(),
+                    parent: Some(definition_id.to_string()),
+                    inputs: Some(prototype_inputs),
+                    shadow: Some(true),
+                    top_level: Some(false),
+                    mutation: Some(Mutation {
+                        tag_name: "mutation".to_string(),
+                        children: vec![],
+                        proccode: proc_code,
+                        argumentids: argument_ids,
+                        argumentnames: Some(argument_names),
+                        argumentdefaults: Some(argument_defaults),
+                        warp: "false".to_string(),
+                    }),
+                    ..Default::default()
+                };
+
+                self.push_block(&proc_definition, definition_id);
+                self.push_block(&proc_prototype, prototype_id);
+
+                for (id, block) in arg_blocks {
+                    self.push_block(&block, id);
+                }
+
+                for statement in body {
+                    let current_id = self.gen_block_id();
+                    self.compile_statement(statement, Some(definition_id), Some(current_id), None);
+                }
+
+                // self.push_block(
+                //     &Block {
+                //         opcode: "procedures_definition".to_string(),
+                //     },
+                //     current_id,
+                // )
+            }
             _ => panic!(),
         }
     }
@@ -167,8 +295,13 @@ impl Compiler {
             .insert(id.to_string(), block.clone());
     }
 
-    fn gen_id(&mut self) -> usize {
+    fn gen_block_id(&mut self) -> usize {
         self.block_id += 1;
         self.block_id
+    }
+
+    fn gen_arg_id(&mut self) -> usize {
+        self.arg_id += 1;
+        self.arg_id
     }
 }

@@ -73,7 +73,7 @@ pub struct Block {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub inputs: Option<HashMap<String, serde_json::Value>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub fields: Option<HashMap<String, Vec<Option<String>>>>,
+    pub fields: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub shadow: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]

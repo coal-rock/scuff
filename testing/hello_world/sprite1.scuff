@@ -1,4 +1,7 @@
+function hello_world(arg1: string, arg2: string, arg3: bool) -> void {
+	say("hello, world!");
+}
+
 event flag_clicked {
-	say("hello, world");
-	say("hello, world (2)");
+	say("asldj");
 }
