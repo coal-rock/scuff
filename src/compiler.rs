@@ -188,12 +188,62 @@ impl Compiler {
                         crate::parser::Expr::Bool(_) => todo!(),
                         crate::parser::Expr::Binary(_, _, _) => todo!(),
                     },
-                    _ => {}
+                    _ => {
+                        let mut inputs: HashMap<String, Value> = HashMap::new();
+                        let mut proc_codes = func_name.clone();
+                        let mut argument_ids = String::from("[");
+
+                        for (index, arg) in args.into_iter().enumerate() {
+                            let (proc_code, value) = match arg {
+                                crate::parser::Expr::Number(value) => (" %s", value.to_string()),
+                                crate::parser::Expr::String(value) => (" %s", value.to_string()),
+                                crate::parser::Expr::Identifier(_) => todo!(),
+                                crate::parser::Expr::Bool(_) => todo!(),
+                                crate::parser::Expr::Binary(_, _, _) => todo!(),
+                            };
+
+                            proc_codes.push_str(proc_code);
+
+                            if index != 0 {
+                                argument_ids.push_str(", ");
+                            }
+
+                            // TODO: just add error checking instead of crashing please
+                            let arg_id = &self.arg_table.get(func_name).unwrap()[index].0;
+                            argument_ids.push_str(&format!("\"{}\"", arg_id.to_string()));
+
+                            inputs.insert(arg_id.to_string(), json!([1, [10, value]]));
+                        }
+
+                        argument_ids.push_str("]");
+
+                        self.push_block(
+                            &Block {
+                                opcode: "procedures_call".to_string(),
+                                parent: Some(parent_id.unwrap().to_string()),
+                                inputs: Some(inputs),
+                                mutation: Some(Mutation {
+                                    tag_name: "mutation".to_string(),
+                                    children: vec![],
+                                    proccode: proc_codes,
+                                    argumentids: argument_ids,
+                                    argumentnames: None,
+                                    argumentdefaults: None,
+                                    warp: "false".to_string(),
+                                }),
+                                next: next_id.map(|id| id.to_string()),
+                                ..Block::default()
+                            },
+                            current_id.unwrap(),
+                        );
+                    }
                 }
 
                 // self.push_block(block, id)
             }
             Stmt::FunctionDeclaration(func_name, args, body, return_type) => {
+                self.arg_table.insert(func_name.to_string(), vec![]);
+
                 let prototype_id = self.gen_block_id(); // a
                 let definition_id = self.gen_block_id(); // b
 
@@ -255,7 +305,11 @@ impl Compiler {
 
                     argument_ids.push_str(&format!("\"{}\"", arg_id));
                     argument_names.push_str(&format!("\"{}\"", arg_name));
-                    argument_defaults.push_str(&format!("\"{}\"", arg_default))
+                    argument_defaults.push_str(&format!("\"{}\"", arg_default));
+
+                    // TODO: error handling please???
+                    let function_table = self.arg_table.get_mut(func_name).unwrap();
+                    function_table.push((arg_id, arg_name.to_string()));
                 }
 
                 argument_ids.push_str("]");

@@ -2,3 +2,6 @@ function hello_world(text: string) -> void {
 	say(text);
 }
 
+event flag_clicked {
+	hello_world("balls");
+}
