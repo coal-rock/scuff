@@ -3,5 +3,9 @@ function hello_world(text: string) -> void {
 }
 
 event flag_clicked {
-	hello_world("balls");
+	let x: string = "balls";
+	let y: string = x;
+	hello_world(x);
 }
+
+

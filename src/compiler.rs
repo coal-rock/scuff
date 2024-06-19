@@ -5,20 +5,49 @@ use md5::{Digest, Md5};
 use serde_json::{json, Value};
 
 use crate::makefile::TargetData;
-use crate::parser::{Event, Stmt};
+use crate::parser::{Event, Expr, Stmt};
 use crate::project::{Block, Costume, Mutation, Project, Target};
 use crate::token::Type;
 
+type ArgId = String;
+type ArgName = String;
+type FunctionName = String;
+
+#[derive(Clone, Hash)]
+enum Scope {
+    Local,
+    Function(String),
+}
+
+// kanye west
+impl PartialEq for Scope {
+    fn eq(&self, other: &Scope) -> bool {
+        match (other, self) {
+            (Scope::Local, Scope::Local) => true,
+            (Scope::Local, Scope::Function(_)) => false,
+            (Scope::Function(_), Scope::Local) => false,
+            (Scope::Function(func), Scope::Function(other_func)) => func == other_func,
+        }
+    }
+}
+impl Eq for Scope {}
+
 pub struct Compiler {
+    project: Project,
     targets: Vec<(TargetData, Vec<Stmt>)>,
     current_target: (TargetData, Vec<Stmt>),
-    project: Project,
+    scope: Scope,
     block_id: usize,
-    arg_id: usize,
+    /// ```
+    /// HashMap<Scope, HashMap<VarName, VarId>>
+    var_table: HashMap<Scope, HashMap<String, String>>,
+    var_id: usize,
     /// ```
     /// let function_table = arg_table.get(function_name)?;
     /// let (arg_id, arg_name) = function_table[arg_position]?;
+    /// HashMap<FunctionName, Vec<(ArgId, ArgName)>>
     arg_table: HashMap<String, Vec<(String, String)>>,
+    arg_id: usize,
     target_index: usize,
     parent: Option<usize>,
 }
@@ -27,14 +56,17 @@ pub struct Compiler {
 impl Compiler {
     pub fn new(targets: Vec<(TargetData, Vec<Stmt>)>) -> Compiler {
         Compiler {
+            scope: Scope::Local,
             targets: targets.clone(),
             current_target: targets[0].clone(),
             project: Project::new(),
             block_id: 0,
             arg_id: 0,
             arg_table: HashMap::new(),
+            var_id: 0,
             target_index: 0,
             parent: None,
+            var_table: HashMap::new(),
         }
     }
 
@@ -136,8 +168,8 @@ impl Compiler {
                 match opcode {
                     // FIXME: we only care about the first expression, lel
                     "looks_say" => match &args[0] {
-                        crate::parser::Expr::Number(_) => todo!(),
-                        crate::parser::Expr::String(string) => {
+                        Expr::Number(_) => todo!(),
+                        Expr::String(string) => {
                             let mut inputs = HashMap::new();
                             let value = json!([1, [10, string,]]);
 
@@ -154,7 +186,7 @@ impl Compiler {
                                 current_id.unwrap(),
                             );
                         }
-                        crate::parser::Expr::Identifier(ident) => {
+                        Expr::Identifier(ident) => {
                             let arg_reporter_id = self.gen_block_id();
 
                             let mut inputs = HashMap::new();
@@ -185,8 +217,8 @@ impl Compiler {
                                 arg_reporter_id,
                             );
                         }
-                        crate::parser::Expr::Bool(_) => todo!(),
-                        crate::parser::Expr::Binary(_, _, _) => todo!(),
+                        Expr::Bool(_) => todo!(),
+                        Expr::Binary(_, _, _) => todo!(),
                     },
                     _ => {
                         let mut inputs: HashMap<String, Value> = HashMap::new();
@@ -194,12 +226,13 @@ impl Compiler {
                         let mut argument_ids = String::from("[");
 
                         for (index, arg) in args.into_iter().enumerate() {
-                            let (proc_code, value) = match arg {
-                                crate::parser::Expr::Number(value) => (" %s", value.to_string()),
-                                crate::parser::Expr::String(value) => (" %s", value.to_string()),
-                                crate::parser::Expr::Identifier(_) => todo!(),
-                                crate::parser::Expr::Bool(_) => todo!(),
-                                crate::parser::Expr::Binary(_, _, _) => todo!(),
+                            let proc_code = match arg {
+                                Expr::Number(value) => " %s",
+                                Expr::String(value) => " %s",
+                                Expr::Identifier(_) => " %s",
+                                // FIXME:: accept more than just string type
+                                Expr::Bool(_) => todo!(),
+                                Expr::Binary(_, _, _) => todo!(),
                             };
 
                             proc_codes.push_str(proc_code);
@@ -212,7 +245,29 @@ impl Compiler {
                             let arg_id = &self.arg_table.get(func_name).unwrap()[index].0;
                             argument_ids.push_str(&format!("\"{}\"", arg_id.to_string()));
 
-                            inputs.insert(arg_id.to_string(), json!([1, [10, value]]));
+                            match arg {
+                                Expr::Number(value) => {
+                                    inputs.insert(arg_id.to_string(), json!([1, [10, value]]));
+                                }
+                                Expr::String(value) => {
+                                    inputs.insert(arg_id.to_string(), json!([1, [10, value]]));
+                                }
+                                Expr::Identifier(ident) => {
+                                    inputs.insert(
+                                        arg_id.to_string(),
+                                        json!([
+                                            3,
+                                            [
+                                                12,
+                                                ident,
+                                                self.get_var_id(self.scope.clone(), ident.clone())
+                                            ]
+                                        ]),
+                                    );
+                                }
+                                Expr::Bool(_) => todo!(),
+                                Expr::Binary(_, _, _) => todo!(),
+                            }
                         }
 
                         argument_ids.push_str("]");
@@ -242,7 +297,8 @@ impl Compiler {
                 // self.push_block(block, id)
             }
             Stmt::FunctionDeclaration(func_name, args, body, return_type) => {
-                self.arg_table.insert(func_name.to_string(), vec![]);
+                self.arg_table.insert(func_name.clone(), vec![]);
+                self.scope = Scope::Function(func_name.clone());
 
                 let prototype_id = self.gen_block_id(); // a
                 let definition_id = self.gen_block_id(); // b
@@ -359,12 +415,38 @@ impl Compiler {
                     self.compile_statement(statement, Some(definition_id), Some(current_id), None);
                 }
 
-                // self.push_block(
-                //     &Block {
-                //         opcode: "procedures_definition".to_string(),
-                //     },
-                //     current_id,
-                // )
+                self.scope = Scope::Local;
+            }
+            // TODO: actually handle type checking?
+            Stmt::VariableDeclaration(var_name, var_type, expr) => {
+                // TODO: handle expressions, idents
+                let var_id = self.push_var(self.scope.clone(), var_name.clone());
+
+                let value = match expr {
+                    Expr::Number(value) => json!([1, [10, value.to_string()]]),
+                    Expr::String(value) => json!([1, [10, value.to_string()]]),
+                    Expr::Identifier(ident) => {
+                        let ident_id = self.get_var_id(self.scope.clone(), ident.clone());
+                        json!([1, [12, ident, ident_id]])
+                    }
+                    Expr::Bool(_) => todo!(),
+                    Expr::Binary(_, _, _) => todo!(),
+                };
+
+                let mut inputs = HashMap::new();
+                inputs.insert("VALUE".to_string(), value);
+
+                self.push_block(
+                    &Block {
+                        opcode: "data_setvariableto".to_string(),
+                        parent: Some(parent_id.unwrap().to_string()),
+                        inputs: Some(inputs),
+                        fields: Some(json!({"VARIABLE": [var_name, var_id]})),
+                        next: next_id.map(|id| id.to_string()),
+                        ..Block::default()
+                    },
+                    current_id.unwrap(),
+                );
             }
             _ => panic!(),
         }
@@ -380,6 +462,44 @@ impl Compiler {
             .insert(id.to_string(), block.clone());
     }
 
+    /// adds a variable to both the internal table used by the compiler,
+    /// and to the Project struct that's eventually serialized
+    /// returns the ID of the variable
+    fn push_var(&mut self, scope: Scope, var_name: String) -> String {
+        // add an empty hashmap for the scope if it doesn't exist within the var table
+        if !self
+            .var_table
+            .clone()
+            .into_keys()
+            .collect::<Vec<Scope>>()
+            .contains(&scope)
+        {
+            self.var_table.insert(scope.clone(), HashMap::new());
+        }
+
+        let var_id = self.gen_var_id().to_string();
+
+        self.var_table
+            .get_mut(&scope)
+            .unwrap()
+            .insert(var_name.clone(), var_id.clone());
+
+        self.project.targets[self.target_index]
+            .variables
+            .insert(var_id.clone(), json!([var_name, 0]));
+
+        var_id
+    }
+
+    fn get_var_id(&self, scope: Scope, var_name: String) -> String {
+        self.var_table
+            .get(&scope)
+            .unwrap()
+            .get(&var_name)
+            .unwrap()
+            .to_string()
+    }
+
     fn gen_block_id(&mut self) -> usize {
         self.block_id += 1;
         self.block_id
@@ -388,5 +508,10 @@ impl Compiler {
     fn gen_arg_id(&mut self) -> usize {
         self.arg_id += 1;
         self.arg_id
+    }
+
+    fn gen_var_id(&mut self) -> usize {
+        self.var_id += 1;
+        self.var_id
     }
 }

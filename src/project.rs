@@ -27,7 +27,7 @@ type Value = String;
 pub struct Target {
     pub is_stage: bool,
     pub name: String,
-    pub variables: HashMap<String, (String, Value)>,
+    pub variables: HashMap<String, serde_json::Value>,
     pub lists: HashMap<String, (String, Vec<Value>)>,
     // TODO
     pub broadcasts: HashMap<String, String>,
