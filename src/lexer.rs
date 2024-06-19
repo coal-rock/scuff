@@ -202,6 +202,7 @@ impl Lexer {
             ';' => self.add_token(TokenType::Semicolon),
             ':' => self.add_token(TokenType::Colon),
             '+' => self.add_token(TokenType::Operator(Operator::Plus)),
+            '&' => self.add_token(TokenType::Operator(Operator::Ampersand)),
             '*' => self.add_token(TokenType::Operator(Operator::Star)),
             '^' => self.add_token(TokenType::Operator(Operator::Caret)),
             '!' => self.add_token_cond(

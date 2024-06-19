@@ -39,8 +39,8 @@ pub struct Compiler {
     scope: Scope,
     block_id: usize,
     /// ```
-    /// HashMap<Scope, HashMap<VarName, VarId>>
-    var_table: HashMap<Scope, HashMap<String, String>>,
+    /// HashMap<Scope, HashMap<VarName, (VarId, VarType)>>
+    var_table: HashMap<Scope, HashMap<String, (String, Type)>>,
     var_id: usize,
     /// ```
     /// let function_table = arg_table.get(function_name)?;
@@ -420,7 +420,7 @@ impl Compiler {
             // TODO: actually handle type checking?
             Stmt::VariableDeclaration(var_name, var_type, expr) => {
                 // TODO: handle expressions, idents
-                let var_id = self.push_var(self.scope.clone(), var_name.clone());
+                let var_id = self.push_var(self.scope.clone(), var_name.clone(), var_type.clone());
 
                 let value = match expr {
                     Expr::Number(value) => json!([1, [10, value.to_string()]]),
@@ -465,7 +465,7 @@ impl Compiler {
     /// adds a variable to both the internal table used by the compiler,
     /// and to the Project struct that's eventually serialized
     /// returns the ID of the variable
-    fn push_var(&mut self, scope: Scope, var_name: String) -> String {
+    fn push_var(&mut self, scope: Scope, var_name: String, var_type: Type) -> String {
         // add an empty hashmap for the scope if it doesn't exist within the var table
         if !self
             .var_table
@@ -482,7 +482,7 @@ impl Compiler {
         self.var_table
             .get_mut(&scope)
             .unwrap()
-            .insert(var_name.clone(), var_id.clone());
+            .insert(var_name.clone(), (var_id.clone(), var_type.clone()));
 
         self.project.targets[self.target_index]
             .variables
@@ -497,6 +497,7 @@ impl Compiler {
             .unwrap()
             .get(&var_name)
             .unwrap()
+            .0
             .to_string()
     }
 

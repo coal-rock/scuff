@@ -14,6 +14,8 @@ pub enum Operator {
     Minus,
     Plus,
 
+    Ampersand,
+
     Slash,
     Star,
     Caret,
