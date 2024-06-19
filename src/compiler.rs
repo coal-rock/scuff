@@ -17,8 +17,8 @@ pub struct Compiler {
     arg_id: usize,
     /// ```
     /// let function_table = arg_table.get(function_name)?;
-    /// let argument_id = function_table.get(argument_name)?;
-    arg_table: HashMap<String, HashMap<String, String>>,
+    /// let (arg_id, arg_name) = function_table[arg_position]?;
+    arg_table: HashMap<String, Vec<(String, String)>>,
     target_index: usize,
     parent: Option<usize>,
 }
@@ -134,6 +134,7 @@ impl Compiler {
                 };
 
                 match opcode {
+                    // FIXME: we only care about the first expression, lel
                     "looks_say" => match &args[0] {
                         crate::parser::Expr::Number(_) => todo!(),
                         crate::parser::Expr::String(string) => {
@@ -153,11 +154,41 @@ impl Compiler {
                                 current_id.unwrap(),
                             );
                         }
-                        crate::parser::Expr::Identifier(_) => todo!(),
+                        crate::parser::Expr::Identifier(ident) => {
+                            let arg_reporter_id = self.gen_block_id();
+
+                            let mut inputs = HashMap::new();
+                            let value = json!([3, arg_reporter_id.to_string(), [10, ""]]);
+
+                            inputs.insert("MESSAGE".to_string(), value);
+
+                            self.push_block(
+                                &Block {
+                                    opcode: "looks_say".to_string(),
+                                    parent: Some(parent_id.unwrap().to_string()),
+                                    inputs: Some(inputs),
+                                    next: next_id.map(|id| id.to_string()),
+                                    ..Block::default()
+                                },
+                                current_id.unwrap(),
+                            );
+
+                            self.push_block(
+                                &Block {
+                                    opcode: "argument_reporter_string_number".to_string(),
+                                    parent: current_id.map(|id| id.to_string()),
+                                    fields: Some(json!({"VALUE": [ident, Value::Null]})),
+                                    shadow: Some(false),
+                                    top_level: Some(false),
+                                    ..Block::default()
+                                },
+                                arg_reporter_id,
+                            );
+                        }
                         crate::parser::Expr::Bool(_) => todo!(),
                         crate::parser::Expr::Binary(_, _, _) => todo!(),
                     },
-                    _ => panic!(),
+                    _ => {}
                 }
 
                 // self.push_block(block, id)

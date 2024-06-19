@@ -1,7 +1,4 @@
-function hello_world(arg1: string, arg2: string, arg3: bool) -> void {
-	say("hello, world!");
+function hello_world(text: string) -> void {
+	say(text);
 }
 
-event flag_clicked {
-	say("asldj");
-}
