@@ -1,11 +1,15 @@
-function hello_world(text: string, text2: string) -> void {
-	say((text & text2));
+function test(arg1: string, arg2: string) -> void {
+	say(arg1);
+	say("hello, world");
+	say(arg2);
 }
 
 event flag_clicked {
-	let x: string = "balls";
-	let y: string = x;
-	hello_world(x, y);
+	say("hi");
+	say("hi");
+	say("hi");
+	say("hi_balls");
+	test("asd", "asd2");
 }
 
 

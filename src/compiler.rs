@@ -107,7 +107,7 @@ impl Compiler {
             let ast = &self.current_target.1.clone();
 
             for statement in ast {
-                self.compile_statement(statement, None, None, None);
+                self.compile_top_level_statement(statement);
             }
 
             self.target_index += 1;
@@ -127,7 +127,7 @@ impl Compiler {
         }
     }
 
-    fn compile_binary_expr(&mut self, expression: &Expr, parent_id: usize, current_id: usize) {
+    fn compile_binary_expr(&mut self, expression: &Expr, parent_id: String, current_id: String) {
         match expression {
             Expr::Number(_) => todo!(),
             Expr::String(_) => todo!(),
@@ -164,7 +164,7 @@ impl Compiler {
                                         top_level: Some(false),
                                         ..Default::default()
                                     },
-                                    child_id,
+                                    child_id.clone(),
                                 );
 
                                 json!([3, child_id.to_string(), [10, ""]])
@@ -173,7 +173,7 @@ impl Compiler {
                         Expr::Binary(_, _, _) => {
                             // TODO: type checking here, some operators can't be used as input for other operators
                             let id = self.gen_block_id();
-                            self.compile_binary_expr(left, current_id, id);
+                            self.compile_binary_expr(left, current_id.clone(), id.clone());
                             json!([3, id.to_string(), [10, ""]])
                         }
                     };
@@ -206,7 +206,7 @@ impl Compiler {
                                         top_level: Some(false),
                                         ..Default::default()
                                     },
-                                    child_id,
+                                    child_id.clone(),
                                 );
 
                                 json!([3, child_id.to_string(), [10, ""]])
@@ -215,7 +215,7 @@ impl Compiler {
                         Expr::Binary(_, _, _) => {
                             // TODO: type checking here, some operators can't be used as input for other operators
                             let id = self.gen_block_id();
-                            self.compile_binary_expr(right, current_id, id);
+                            self.compile_binary_expr(right, current_id.clone(), id.clone());
                             json!([3, id.to_string(), [10, ""]])
                         }
                     };
@@ -252,44 +252,386 @@ impl Compiler {
         }
     }
 
+    fn compile_body_statements(&mut self, body: &Vec<Stmt>, parent_id: String) {
+        for (index, stmt) in body.into_iter().enumerate() {
+            let current_id = self.gen_block_id();
+
+            match stmt {
+                Stmt::FunctionCall(func_name, args) => {
+                    let opcode = match func_name.as_str() {
+                        "say" => "looks_say",
+                        _ => "procedures_call",
+                    };
+
+                    match opcode {
+                        // FIXME: we only care about the first expression, lel
+                        "looks_say" => match &args[0] {
+                            Expr::Number(_) => todo!(),
+                            Expr::String(string) => {
+                                let mut inputs = HashMap::new();
+                                let value = json!([1, [10, string,]]);
+                                inputs.insert("MESSAGE".to_string(), value);
+
+                                let next_id = if (index + 1) >= body.len() {
+                                    None
+                                } else {
+                                    Some(self.peek_next_block_id())
+                                };
+
+                                self.push_block(
+                                    &Block {
+                                        opcode: "looks_say".to_string(),
+                                        parent: Some(parent_id.clone()),
+                                        inputs: Some(inputs),
+                                        next: next_id,
+                                        ..Block::default()
+                                    },
+                                    current_id,
+                                );
+                            }
+                            Expr::Identifier(ident) => {
+                                let arg_reporter_id = self.gen_block_id();
+                                let looks_say_id = current_id;
+
+                                let mut inputs = HashMap::new();
+                                let value = json!([3, arg_reporter_id, [10, ""]]);
+                                inputs.insert("MESSAGE".to_string(), value);
+
+                                let next_id = if (index + 1) >= body.len() {
+                                    None
+                                } else {
+                                    Some(self.peek_next_block_id())
+                                };
+
+                                self.push_block(
+                                    &Block {
+                                        opcode: "looks_say".to_string(),
+                                        parent: Some(parent_id.clone()),
+                                        inputs: Some(inputs),
+                                        next: next_id,
+                                        ..Block::default()
+                                    },
+                                    looks_say_id.clone(),
+                                );
+
+                                self.push_block(
+                                    &Block {
+                                        opcode: "argument_reporter_string_number".to_string(),
+                                        parent: Some(looks_say_id),
+                                        fields: Some(json!({"VALUE": [ident, Value::Null]})),
+                                        shadow: Some(false),
+                                        top_level: Some(false),
+                                        ..Block::default()
+                                    },
+                                    arg_reporter_id,
+                                );
+                            }
+                            Expr::Bool(_) => todo!(),
+                            Expr::Binary(_, _, _) => {
+                                let new_id = self.gen_block_id();
+
+                                self.compile_binary_expr(
+                                    &args[0],
+                                    current_id.clone(),
+                                    new_id.clone(),
+                                );
+
+                                let mut inputs = HashMap::new();
+                                inputs.insert("MESSAGE".to_string(), json!([3, new_id, [10, ""]]));
+
+                                self.push_block(
+                                    &Block {
+                                        opcode: "looks_say".to_string(),
+                                        parent: Some(parent_id.to_string()),
+                                        inputs: Some(inputs),
+                                        next: Some((self.block_id + 1).to_string()),
+                                        ..Block::default()
+                                    },
+                                    current_id,
+                                );
+                            }
+                            _ => panic!(),
+                        },
+                        _ => {
+                            let mut inputs: HashMap<String, Value> = HashMap::new();
+                            let mut proc_codes = func_name.clone();
+                            let mut argument_ids = String::from("[");
+
+                            for (index, arg) in args.into_iter().enumerate() {
+                                let proc_code = match arg {
+                                    Expr::Number(value) => " %s",
+                                    Expr::String(value) => " %s",
+                                    Expr::Identifier(_) => " %s",
+                                    // FIXME:: accept more than just string type
+                                    Expr::Bool(_) => todo!(),
+                                    Expr::Binary(_, _, _) => todo!(),
+                                };
+
+                                proc_codes.push_str(proc_code);
+
+                                if index != 0 {
+                                    argument_ids.push_str(", ");
+                                }
+
+                                // TODO: just add error checking instead of crashing please
+                                let arg_id = &self.arg_table.get(func_name).unwrap()[index].0;
+                                argument_ids.push_str(&format!("\"{}\"", arg_id.to_string()));
+
+                                match arg {
+                                    Expr::Number(value) => {
+                                        inputs.insert(arg_id.to_string(), json!([1, [10, value]]));
+                                    }
+                                    Expr::String(value) => {
+                                        inputs.insert(arg_id.to_string(), json!([1, [10, value]]));
+                                    }
+                                    Expr::Identifier(ident) => {
+                                        inputs.insert(
+                                            arg_id.to_string(),
+                                            json!([
+                                                3,
+                                                [
+                                                    12,
+                                                    ident,
+                                                    self.get_var_id(
+                                                        self.scope.clone(),
+                                                        ident.clone()
+                                                    )
+                                                ]
+                                            ]),
+                                        );
+                                    }
+                                    Expr::Bool(_) => todo!(),
+                                    Expr::Binary(_, _, _) => todo!(),
+                                }
+                            }
+
+                            argument_ids.push_str("]");
+
+                            let next_id = if (index + 1) >= body.len() {
+                                None
+                            } else {
+                                Some(self.peek_next_block_id())
+                            };
+
+                            self.push_block(
+                                &Block {
+                                    opcode: "procedures_call".to_string(),
+                                    parent: Some(parent_id.clone()),
+                                    inputs: Some(inputs),
+                                    mutation: Some(Mutation {
+                                        tag_name: "mutation".to_string(),
+                                        children: vec![],
+                                        proccode: proc_codes,
+                                        argumentids: argument_ids,
+                                        argumentnames: None,
+                                        argumentdefaults: None,
+                                        warp: "false".to_string(),
+                                    }),
+                                    next: next_id,
+                                    ..Block::default()
+                                },
+                                current_id,
+                            );
+                        }
+                    }
+
+                    // self.push_block(block, id)
+                }
+                _ => panic!("statment: {:#?} not valid in body", stmt),
+            }
+        }
+    }
+
+    fn compile_top_level_statement(&mut self, statement: &Stmt) {
+        match statement {
+            // TODO: scope for event handler
+            Stmt::EventHandler(event, body) => match event {
+                Event::FlagClicked => {
+                    let flag_id = self.gen_block_id();
+
+                    let next_id = if body.len() > 0 {
+                        Some(self.peek_next_block_id())
+                    } else {
+                        None
+                    };
+
+                    self.push_block(
+                        &Block {
+                            opcode: "event_whenflagclicked".to_string(),
+                            next: next_id,
+                            top_level: Some(true),
+                            ..Block::default()
+                        },
+                        flag_id.clone(),
+                    );
+
+                    self.compile_body_statements(body, flag_id);
+                }
+                _ => todo!(),
+            },
+            Stmt::FunctionDeclaration(func_name, args, body, return_type) => {
+                self.arg_table.insert(func_name.clone(), vec![]);
+                self.scope = Scope::Function(func_name.clone());
+
+                let prototype_id = self.gen_block_id(); // a
+                let definition_id = self.gen_block_id(); // b
+
+                let mut prototype_inputs: HashMap<String, Value> = HashMap::new();
+                let mut definition_inputs: HashMap<String, Value> = HashMap::new();
+
+                let mut arg_blocks: Vec<(String, Block)> = Vec::new();
+
+                let mut proc_code = func_name.clone();
+                let mut argument_ids = String::from("[");
+                let mut argument_names = String::from("[");
+                let mut argument_defaults = String::from("[");
+
+                for (index, (arg_name, arg_type)) in args.iter().enumerate() {
+                    let proc_code_frag = match arg_type {
+                        Type::Number | Type::String => " %s",
+                        Type::Bool => " %b",
+                        Type::Table => todo!(),
+                        Type::Void => todo!(),
+                    };
+
+                    proc_code.push_str(proc_code_frag);
+
+                    if index != 0 {
+                        argument_ids.push_str(",");
+                        argument_names.push_str(",");
+                        argument_defaults.push_str(",");
+                    }
+
+                    let arg_id = self.gen_arg_id().to_string();
+
+                    let arg_default = match arg_type {
+                        Type::Number | Type::String => "",
+                        Type::Bool => "false",
+                        Type::Table => todo!(),
+                        Type::Void => todo!(),
+                    };
+
+                    let arg_block_id = self.gen_block_id();
+                    prototype_inputs.insert(arg_id.clone(), json!([1, arg_block_id.to_string()]));
+
+                    let opcode = match arg_type {
+                        Type::Number | Type::String => "argument_reporter_string_number",
+                        Type::Bool => "argument_reporter_boolean",
+                        Type::Table => todo!(),
+                        Type::Void => todo!(),
+                    };
+
+                    let arg_block = Block {
+                        opcode: opcode.to_string(),
+                        parent: Some(prototype_id.to_string()),
+                        fields: Some(json!({"VALUE": [arg_name, Value::Null]})),
+                        shadow: Some(true),
+                        top_level: Some(false),
+                        ..Default::default()
+                    };
+
+                    arg_blocks.push((arg_block_id, arg_block));
+
+                    argument_ids.push_str(&format!("\"{}\"", arg_id));
+                    argument_names.push_str(&format!("\"{}\"", arg_name));
+                    argument_defaults.push_str(&format!("\"{}\"", arg_default));
+
+                    // TODO: error handling please???
+                    let function_table = self.arg_table.get_mut(func_name).unwrap();
+                    function_table.push((arg_id, arg_name.to_string()));
+                }
+
+                argument_ids.push_str("]");
+                argument_names.push_str("]");
+                argument_defaults.push_str("]");
+
+                definition_inputs.insert(
+                    "custom_block".to_string(),
+                    json!([1, prototype_id.to_string()]),
+                );
+
+                let proc_definition = Block {
+                    opcode: "procedures_definition".to_string(),
+                    next: Some(self.peek_next_block_id()),
+                    inputs: Some(definition_inputs),
+                    top_level: Some(true),
+                    ..Default::default()
+                };
+
+                let proc_prototype = Block {
+                    opcode: "procedures_prototype".to_string(),
+                    parent: Some(definition_id.to_string()),
+                    inputs: Some(prototype_inputs),
+                    shadow: Some(true),
+                    top_level: Some(false),
+                    mutation: Some(Mutation {
+                        tag_name: "mutation".to_string(),
+                        children: vec![],
+                        proccode: proc_code,
+                        argumentids: argument_ids,
+                        argumentnames: Some(argument_names),
+                        argumentdefaults: Some(argument_defaults),
+                        warp: "false".to_string(),
+                    }),
+                    ..Default::default()
+                };
+
+                self.push_block(&proc_definition, definition_id.clone());
+                self.push_block(&proc_prototype, prototype_id);
+
+                for (id, block) in arg_blocks {
+                    self.push_block(&block, id);
+                }
+
+                self.compile_body_statements(body, definition_id.clone());
+
+                self.scope = Scope::Local;
+            }
+            _ => panic!("statement type: {:#?} cannot be top-level", statement),
+        }
+    }
+
     fn compile_statement(
         &mut self,
         statement: &Stmt,
-        parent_id: Option<usize>,
-        current_id: Option<usize>,
-        next_id: Option<usize>,
+        parent_id: Option<String>,
+        current_id: Option<String>,
+        next_id: Option<String>,
     ) {
         match statement {
-            Stmt::EventHandler(event, body) => {
-                let current_id = self.gen_block_id();
+            Stmt::EventHandler(event, body) => match event {
+                Event::FlagClicked => {
+                    let event_id = self.gen_block_id();
 
-                match event {
-                    Event::FlagClicked => {
-                        self.push_block(
-                            &Block {
-                                opcode: "event_whenflagclicked".to_string(),
-                                next: Some((current_id + 1).to_string()),
-                                top_level: Some(true),
-                                ..Block::default()
-                            },
-                            current_id,
+                    self.push_block(
+                        &Block {
+                            opcode: "event_whenflagclicked".to_string(),
+                            next: Some(self.peek_next_block_id()),
+                            top_level: Some(true),
+                            ..Block::default()
+                        },
+                        event_id.clone(),
+                    );
+
+                    for (idx, stmt) in body.iter().enumerate() {
+                        let stmt_id = self.gen_block_id();
+
+                        let next_stmt_id = if (idx + 1) == body.len() {
+                            None
+                        } else {
+                            Some(self.peek_next_block_id())
+                        };
+
+                        self.compile_statement(
+                            stmt,
+                            Some(event_id.clone()),
+                            Some(stmt_id),
+                            next_stmt_id,
                         );
-
-                        for (idx, stmt) in body.iter().enumerate() {
-                            let id = self.gen_block_id();
-
-                            let next_id = if (idx + 1) == body.len() {
-                                None
-                            } else {
-                                Some(id + 1)
-                            };
-
-                            self.compile_statement(stmt, Some(current_id), Some(id), next_id);
-                        }
                     }
-                    Event::KeyPressed(_) => todo!(),
                 }
-            }
+                Event::KeyPressed(_) => todo!(),
+            },
             Stmt::FunctionCall(func_name, args) => {
                 let opcode = match func_name.as_str() {
                     "say" => "looks_say",
@@ -311,7 +653,7 @@ impl Compiler {
                                     opcode: "looks_say".to_string(),
                                     parent: Some(parent_id.unwrap().to_string()),
                                     inputs: Some(inputs),
-                                    next: next_id.map(|id| id.to_string()),
+                                    next: Some(self.peek_next_block_id()),
                                     ..Block::default()
                                 },
                                 current_id.unwrap(),
@@ -333,7 +675,7 @@ impl Compiler {
                                     next: next_id.map(|id| id.to_string()),
                                     ..Block::default()
                                 },
-                                current_id.unwrap(),
+                                current_id.clone().unwrap(),
                             );
 
                             self.push_block(
@@ -352,26 +694,21 @@ impl Compiler {
                         Expr::Binary(_, _, _) => {
                             let new_id = self.gen_block_id();
 
-                            self.compile_binary_expr(&args[0], current_id.unwrap(), new_id);
-
-                            let mut inputs = HashMap::new();
-                            inputs.insert(
-                                "MESSAGE".to_string(),
-                                json!([3, new_id.to_string(), [10, ""]]),
+                            self.compile_binary_expr(
+                                &args[0],
+                                current_id.clone().unwrap(),
+                                new_id.clone(),
                             );
 
-                            let next_id = if next_id.is_some() {
-                                Some(self.gen_block_id().to_string())
-                            } else {
-                                None
-                            };
+                            let mut inputs = HashMap::new();
+                            inputs.insert("MESSAGE".to_string(), json!([3, new_id, [10, ""]]));
 
                             self.push_block(
                                 &Block {
                                     opcode: "looks_say".to_string(),
                                     parent: Some(parent_id.unwrap().to_string()),
                                     inputs: Some(inputs),
-                                    next: next_id,
+                                    next: Some((self.block_id + 1).to_string()),
                                     ..Block::default()
                                 },
                                 current_id.unwrap(),
@@ -444,7 +781,7 @@ impl Compiler {
                                     argumentdefaults: None,
                                     warp: "false".to_string(),
                                 }),
-                                next: next_id.map(|id| id.to_string()),
+                                next: Some(self.peek_next_block_id()),
                                 ..Block::default()
                             },
                             current_id.unwrap(),
@@ -464,7 +801,7 @@ impl Compiler {
                 let mut prototype_inputs: HashMap<String, Value> = HashMap::new();
                 let mut definition_inputs: HashMap<String, Value> = HashMap::new();
 
-                let mut arg_blocks: Vec<(usize, Block)> = Vec::new();
+                let mut arg_blocks: Vec<(String, Block)> = Vec::new();
 
                 let mut proc_code = func_name.clone();
                 let mut argument_ids = String::from("[");
@@ -561,7 +898,7 @@ impl Compiler {
                     ..Default::default()
                 };
 
-                self.push_block(&proc_definition, definition_id);
+                self.push_block(&proc_definition, definition_id.clone());
                 self.push_block(&proc_prototype, prototype_id);
 
                 for (id, block) in arg_blocks {
@@ -570,7 +907,12 @@ impl Compiler {
 
                 for statement in body {
                     let current_id = self.gen_block_id();
-                    self.compile_statement(statement, Some(definition_id), Some(current_id), None);
+                    self.compile_statement(
+                        statement,
+                        Some(definition_id.clone()),
+                        Some(current_id),
+                        None,
+                    );
                 }
 
                 self.scope = Scope::Local;
@@ -603,21 +945,17 @@ impl Compiler {
                         next: next_id.map(|id| id.to_string()),
                         ..Block::default()
                     },
-                    current_id.unwrap(),
+                    current_id.unwrap().to_string(),
                 );
             }
             _ => panic!(),
         }
     }
 
-    fn compile_body(&mut self, body: &Vec<Stmt>, current_id: usize, parent_id: usize) {
-        // for
-    }
-
-    fn push_block(&mut self, block: &Block, id: usize) {
+    fn push_block(&mut self, block: &Block, id: String) {
         self.project.targets[self.target_index]
             .blocks
-            .insert(id.to_string(), block.clone());
+            .insert(id, block.clone());
     }
 
     /// adds a variable to both the internal table used by the compiler,
@@ -673,18 +1011,22 @@ impl Compiler {
         }
     }
 
-    fn gen_block_id(&mut self) -> usize {
+    fn gen_block_id(&mut self) -> String {
         self.block_id += 1;
-        self.block_id
+        ('a'..='z').into_iter().collect::<Vec<char>>()[self.block_id - 1].to_string()
     }
 
-    fn gen_arg_id(&mut self) -> usize {
+    fn peek_next_block_id(&self) -> String {
+        ('a'..='z').into_iter().collect::<Vec<char>>()[self.block_id].to_string()
+    }
+
+    fn gen_arg_id(&mut self) -> String {
         self.arg_id += 1;
-        self.arg_id
+        format!("arg_{}", self.arg_id)
     }
 
-    fn gen_var_id(&mut self) -> usize {
+    fn gen_var_id(&mut self) -> String {
         self.var_id += 1;
-        self.var_id
+        format!("var_{}", self.var_id)
     }
 }
