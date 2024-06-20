@@ -9,10 +9,6 @@ use crate::parser::{Event, Expr, Stmt};
 use crate::project::{Block, Costume, Mutation, Project, Target};
 use crate::token::Type;
 
-type ArgId = String;
-type ArgName = String;
-type FunctionName = String;
-
 #[derive(Clone, Hash)]
 enum Scope {
     Local,
@@ -121,6 +117,141 @@ impl Compiler {
         &self.project
     }
 
+    // TODO: actual type checking
+    fn assert_type(&self, expected_types: Vec<Type>, actual_type: Type) {
+        if !expected_types.contains(&actual_type) {
+            panic!(
+                "expected type: {:?}, recieved type: {:?}",
+                expected_types, actual_type
+            );
+        }
+    }
+
+    fn compile_binary_expr(&mut self, expression: &Expr, parent_id: usize, current_id: usize) {
+        match expression {
+            Expr::Number(_) => todo!(),
+            Expr::String(_) => todo!(),
+            Expr::Identifier(_) => todo!(),
+            Expr::Bool(_) => todo!(),
+            Expr::Binary(left, op, right) => match op {
+                // string concat lol
+                crate::token::Operator::Ampersand => {
+                    let string_1 = match left.as_ref() {
+                        Expr::String(value) => json!([1, [10, value.to_string()]]),
+                        Expr::Number(value) => json!([1, [10, value.to_string()]]),
+                        Expr::Bool(value) => json!([1, [10, value.to_string()]]),
+                        Expr::Identifier(ident) => {
+                            if self.var_exists(self.scope.clone(), ident.clone()) {
+                                json!([
+                                    3,
+                                    [
+                                        12,
+                                        ident.clone(),
+                                        self.get_var_id(self.scope.clone(), ident.clone())
+                                    ],
+                                    [10, ""]
+                                ])
+                            } else {
+                                let child_id = self.gen_block_id();
+                                self.push_block(
+                                    &Block {
+                                        opcode: "argument_reporter_string_number".to_string(),
+                                        parent: Some(current_id.to_string()),
+                                        fields: Some(
+                                            json!({"VALUE": [ident, serde_json::Value::Null]}),
+                                        ),
+                                        shadow: Some(false),
+                                        top_level: Some(false),
+                                        ..Default::default()
+                                    },
+                                    child_id,
+                                );
+
+                                json!([3, child_id.to_string(), [10, ""]])
+                            }
+                        }
+                        Expr::Binary(_, _, _) => {
+                            // TODO: type checking here, some operators can't be used as input for other operators
+                            let id = self.gen_block_id();
+                            self.compile_binary_expr(left, current_id, id);
+                            json!([3, id.to_string(), [10, ""]])
+                        }
+                    };
+
+                    let string_2 = match right.as_ref() {
+                        Expr::String(value) => json!([1, [10, value.to_string()]]),
+                        Expr::Number(value) => json!([1, [10, value.to_string()]]),
+                        Expr::Bool(value) => json!([1, [10, value.to_string()]]),
+                        Expr::Identifier(ident) => {
+                            if self.var_exists(self.scope.clone(), ident.clone()) {
+                                json!([
+                                    3,
+                                    [
+                                        12,
+                                        ident.clone(),
+                                        self.get_var_id(self.scope.clone(), ident.clone())
+                                    ],
+                                    [10, ""]
+                                ])
+                            } else {
+                                let child_id = self.gen_block_id();
+                                self.push_block(
+                                    &Block {
+                                        opcode: "argument_reporter_string_number".to_string(),
+                                        parent: Some(current_id.to_string()),
+                                        fields: Some(
+                                            json!({"VALUE": [ident, serde_json::Value::Null]}),
+                                        ),
+                                        shadow: Some(false),
+                                        top_level: Some(false),
+                                        ..Default::default()
+                                    },
+                                    child_id,
+                                );
+
+                                json!([3, child_id.to_string(), [10, ""]])
+                            }
+                        }
+                        Expr::Binary(_, _, _) => {
+                            // TODO: type checking here, some operators can't be used as input for other operators
+                            let id = self.gen_block_id();
+                            self.compile_binary_expr(right, current_id, id);
+                            json!([3, id.to_string(), [10, ""]])
+                        }
+                    };
+
+                    self.push_block(
+                        &Block {
+                            opcode: "operator_join".to_string(),
+                            parent: Some(parent_id.to_string()),
+                            inputs: Some(HashMap::from([
+                                ("STRING1".to_string(), string_1),
+                                ("STRING2".to_string(), string_2),
+                            ])),
+                            shadow: Some(false),
+                            top_level: Some(false),
+                            ..Default::default()
+                        },
+                        current_id,
+                    )
+                }
+                crate::token::Operator::Bang => todo!(),
+                crate::token::Operator::EqualEqual => todo!(),
+                crate::token::Operator::BangEqual => todo!(),
+                crate::token::Operator::Greater => todo!(),
+                crate::token::Operator::Less => todo!(),
+                crate::token::Operator::GreaterEqual => todo!(),
+                crate::token::Operator::LessEqual => todo!(),
+                crate::token::Operator::Minus => todo!(),
+                crate::token::Operator::Plus => todo!(),
+                crate::token::Operator::Slash => todo!(),
+                crate::token::Operator::Star => todo!(),
+                crate::token::Operator::Caret => todo!(),
+                crate::token::Operator::None => panic!("we should never be here."),
+            },
+        }
+    }
+
     fn compile_statement(
         &mut self,
         statement: &Stmt,
@@ -218,7 +349,34 @@ impl Compiler {
                             );
                         }
                         Expr::Bool(_) => todo!(),
-                        Expr::Binary(_, _, _) => todo!(),
+                        Expr::Binary(_, _, _) => {
+                            let new_id = self.gen_block_id();
+
+                            self.compile_binary_expr(&args[0], current_id.unwrap(), new_id);
+
+                            let mut inputs = HashMap::new();
+                            inputs.insert(
+                                "MESSAGE".to_string(),
+                                json!([3, new_id.to_string(), [10, ""]]),
+                            );
+
+                            let next_id = if next_id.is_some() {
+                                Some(self.gen_block_id().to_string())
+                            } else {
+                                None
+                            };
+
+                            self.push_block(
+                                &Block {
+                                    opcode: "looks_say".to_string(),
+                                    parent: Some(parent_id.unwrap().to_string()),
+                                    inputs: Some(inputs),
+                                    next: next_id,
+                                    ..Block::default()
+                                },
+                                current_id.unwrap(),
+                            );
+                        }
                     },
                     _ => {
                         let mut inputs: HashMap<String, Value> = HashMap::new();
@@ -499,6 +657,20 @@ impl Compiler {
             .unwrap()
             .0
             .to_string()
+    }
+
+    fn var_exists(&self, scope: Scope, var_name: String) -> bool {
+        let scoped_table = self.var_table.get(&scope);
+        let scoped_table = if let Some(table) = scoped_table {
+            table
+        } else {
+            return false;
+        };
+
+        match scoped_table.get(&var_name) {
+            Some(_) => true,
+            None => false,
+        }
     }
 
     fn gen_block_id(&mut self) -> usize {
