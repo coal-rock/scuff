@@ -1,15 +1,10 @@
 function test(arg1: string, arg2: string) -> void {
-	say(arg1);
-	say("hello, world");
-	say(arg2);
+	say((arg1 & arg2));
 }
 
 event flag_clicked {
-	say("hi");
-	say("hi");
-	say("hi");
-	say("hi_balls");
-	test("asd", "asd2");
+	test(("hello, " & "joe- "), "world");
+	say("hello, world");
 }
 
 

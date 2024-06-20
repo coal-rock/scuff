@@ -357,6 +357,8 @@ impl Compiler {
                             let mut proc_codes = func_name.clone();
                             let mut argument_ids = String::from("[");
 
+                            let mut expr_block_id = None;
+
                             for (index, arg) in args.into_iter().enumerate() {
                                 let proc_code = match arg {
                                     Expr::Number(value) => " %s",
@@ -364,7 +366,10 @@ impl Compiler {
                                     Expr::Identifier(_) => " %s",
                                     // FIXME:: accept more than just string type
                                     Expr::Bool(_) => todo!(),
-                                    Expr::Binary(_, _, _) => todo!(),
+                                    Expr::Binary(_, _, _) => {
+                                        expr_block_id = Some(self.gen_block_id());
+                                        " %s"
+                                    }
                                 };
 
                                 proc_codes.push_str(proc_code);
@@ -401,7 +406,20 @@ impl Compiler {
                                         );
                                     }
                                     Expr::Bool(_) => todo!(),
-                                    Expr::Binary(_, _, _) => todo!(),
+                                    Expr::Binary(_, _, _) => {
+                                        let expr_block_id = expr_block_id.clone();
+
+                                        inputs.insert(
+                                            arg_id.clone().to_string(),
+                                            json!([3, expr_block_id.clone().unwrap(), [10, ""]]),
+                                        );
+
+                                        self.compile_binary_expr(
+                                            arg,
+                                            current_id.clone(),
+                                            expr_block_id.unwrap(),
+                                        );
+                                    }
                                 }
                             }
 
