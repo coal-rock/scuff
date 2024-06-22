@@ -143,7 +143,18 @@ impl Compiler {
                 todo!("this will be removed, i just can't be fucked to bother with the lexer")
             }
             Operator::EqualEqual => {
+                let left_id = self.gen_block_id();
+                let right_id = self.gen_block_id();
 
+                self.compile_binary_expr(left, current_id.clone(), left_id);
+                self.compile_binary_expr(right, current_id.clone(), right_id);
+               
+                // self.push_block(&Block {
+                //     opcode: "operator_equals".to_string(),
+                //     parent: Some(parent_id),
+                //     inputs: 
+                //     ..Default::default()
+                // }, current_id);
 
             },
             Operator::BangEqual => todo!(),
@@ -342,12 +353,18 @@ impl Compiler {
                                 let mut inputs = HashMap::new();
                                 inputs.insert("MESSAGE".to_string(), json!([3, new_id, [10, ""]]));
 
+                                let next_id = if (index + 1) >= body.len() {
+                                    None
+                                } else {
+                                    Some(self.peek_next_block_id())
+                                };
+
                                 self.push_block(
                                     &Block {
                                         opcode: "looks_say".to_string(),
                                         parent: Some(parent_id.to_string()),
                                         inputs: Some(inputs),
-                                        next: Some((self.block_id + 1).to_string()),
+                                        next: next_id,
                                         ..Block::default()
                                     },
                                     current_id,
