@@ -1,13 +1,5 @@
-function fort(arg: string, arg2: string) -> void {
-	say(arg);
-	say("hello");
-	let x: string = ("hello," & " world");
-	say(x);
-
-}
-
 event flag_clicked {
-	fort("hello", "2");
+	say("hello");
 }
 
 

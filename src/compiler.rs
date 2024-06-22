@@ -7,7 +7,7 @@ use serde_json::{json, Value};
 use crate::makefile::TargetData;
 use crate::parser::{Event, Expr, Stmt};
 use crate::project::{Block, Costume, Mutation, Project, Target};
-use crate::token::Type;
+use crate::token::{Operator, Type};
 
 #[derive(Clone, Hash)]
 enum Scope {
@@ -127,6 +127,34 @@ impl Compiler {
         }
     }
 
+    fn compile_condition(&mut self, condition: &Expr, parent_id: String, current_id: String) {
+        // never nest!
+        let (left, op, right) = if let Expr::Binary(left, op, right) = condition {
+            (left, op, right)
+        } else {
+            panic!(
+                "expected binary expression in condition, recieved: {:?}",
+                condition
+            );
+        };
+
+        match op {
+            Operator::Bang => {
+                todo!("this will be removed, i just can't be fucked to bother with the lexer")
+            }
+            Operator::EqualEqual => {
+
+
+            },
+            Operator::BangEqual => todo!(),
+            Operator::Greater => todo!(),
+            Operator::Less => todo!(),
+            Operator::GreaterEqual => todo!(),
+            Operator::LessEqual => todo!(),
+            _ => panic!("a comparison operator is required as the root operator in a condition, found: {:#?}", op)
+        }
+    }
+
     fn compile_binary_expr(&mut self, expression: &Expr, parent_id: String, current_id: String) {
         match expression {
             Expr::Number(_) => todo!(),
@@ -135,90 +163,9 @@ impl Compiler {
             Expr::Bool(_) => todo!(),
             Expr::Binary(left, op, right) => match op {
                 // string concat lol
-                crate::token::Operator::Ampersand => {
-                    let string_1 = match left.as_ref() {
-                        Expr::String(value) => json!([1, [10, value.to_string()]]),
-                        Expr::Number(value) => json!([1, [10, value.to_string()]]),
-                        Expr::Bool(value) => json!([1, [10, value.to_string()]]),
-                        Expr::Identifier(ident) => {
-                            if self.var_exists(self.scope.clone(), ident.clone()) {
-                                json!([
-                                    3,
-                                    [
-                                        12,
-                                        ident.clone(),
-                                        self.get_var_id(self.scope.clone(), ident.clone())
-                                    ],
-                                    [10, ""]
-                                ])
-                            } else {
-                                let child_id = self.gen_block_id();
-                                self.push_block(
-                                    &Block {
-                                        opcode: "argument_reporter_string_number".to_string(),
-                                        parent: Some(current_id.to_string()),
-                                        fields: Some(
-                                            json!({"VALUE": [ident, serde_json::Value::Null]}),
-                                        ),
-                                        shadow: Some(false),
-                                        top_level: Some(false),
-                                        ..Default::default()
-                                    },
-                                    child_id.clone(),
-                                );
-
-                                json!([3, child_id.to_string(), [10, ""]])
-                            }
-                        }
-                        Expr::Binary(_, _, _) => {
-                            // TODO: type checking here, some operators can't be used as input for other operators
-                            let id = self.gen_block_id();
-                            self.compile_binary_expr(left, current_id.clone(), id.clone());
-                            json!([3, id.to_string(), [10, ""]])
-                        }
-                    };
-
-                    let string_2 = match right.as_ref() {
-                        Expr::String(value) => json!([1, [10, value.to_string()]]),
-                        Expr::Number(value) => json!([1, [10, value.to_string()]]),
-                        Expr::Bool(value) => json!([1, [10, value.to_string()]]),
-                        Expr::Identifier(ident) => {
-                            if self.var_exists(self.scope.clone(), ident.clone()) {
-                                json!([
-                                    3,
-                                    [
-                                        12,
-                                        ident.clone(),
-                                        self.get_var_id(self.scope.clone(), ident.clone())
-                                    ],
-                                    [10, ""]
-                                ])
-                            } else {
-                                let child_id = self.gen_block_id();
-                                self.push_block(
-                                    &Block {
-                                        opcode: "argument_reporter_string_number".to_string(),
-                                        parent: Some(current_id.to_string()),
-                                        fields: Some(
-                                            json!({"VALUE": [ident, serde_json::Value::Null]}),
-                                        ),
-                                        shadow: Some(false),
-                                        top_level: Some(false),
-                                        ..Default::default()
-                                    },
-                                    child_id.clone(),
-                                );
-
-                                json!([3, child_id.to_string(), [10, ""]])
-                            }
-                        }
-                        Expr::Binary(_, _, _) => {
-                            // TODO: type checking here, some operators can't be used as input for other operators
-                            let id = self.gen_block_id();
-                            self.compile_binary_expr(right, current_id.clone(), id.clone());
-                            json!([3, id.to_string(), [10, ""]])
-                        }
-                    };
+                Operator::Ampersand => {
+                    let string_1 = self.value_from_expr(left, current_id.clone());
+                    let string_2 = self.value_from_expr(right, current_id.clone());
 
                     self.push_block(
                         &Block {
@@ -235,20 +182,62 @@ impl Compiler {
                         current_id,
                     )
                 }
-                crate::token::Operator::Bang => todo!(),
-                crate::token::Operator::EqualEqual => todo!(),
-                crate::token::Operator::BangEqual => todo!(),
-                crate::token::Operator::Greater => todo!(),
-                crate::token::Operator::Less => todo!(),
-                crate::token::Operator::GreaterEqual => todo!(),
-                crate::token::Operator::LessEqual => todo!(),
-                crate::token::Operator::Minus => todo!(),
-                crate::token::Operator::Plus => todo!(),
-                crate::token::Operator::Slash => todo!(),
-                crate::token::Operator::Star => todo!(),
-                crate::token::Operator::Caret => todo!(),
-                crate::token::Operator::None => panic!("we should never be here."),
+                Operator::Bang => todo!(),
+                Operator::EqualEqual => todo!(),
+                Operator::BangEqual => todo!(),
+                Operator::Greater => todo!(),
+                Operator::Less => todo!(),
+                Operator::GreaterEqual => todo!(),
+                Operator::LessEqual => todo!(),
+                Operator::Minus => todo!(),
+                Operator::Plus => todo!(),
+                Operator::Slash => todo!(),
+                Operator::Star => todo!(),
+                Operator::Caret => todo!(),
+                Operator::None => panic!("we should never be here."),
             },
+        }
+    }
+
+    fn value_from_expr(&mut self, expr: &Expr, parent_id: String) -> Value {
+        match expr {
+            Expr::String(value) => json!([1, [10, value.to_string()]]),
+            Expr::Number(value) => json!([1, [10, value.to_string()]]),
+            Expr::Bool(value) => json!([1, [10, value.to_string()]]),
+            Expr::Identifier(ident) => {
+                if self.var_exists(self.scope.clone(), ident.clone()) {
+                    json!([
+                        3,
+                        [
+                            12,
+                            ident.clone(),
+                            self.get_var_id(self.scope.clone(), ident.clone())
+                        ],
+                        [10, ""]
+                    ])
+                } else {
+                    let child_id = self.gen_block_id();
+                    self.push_block(
+                        &Block {
+                            opcode: "argument_reporter_string_number".to_string(),
+                            parent: Some(parent_id.to_string()),
+                            fields: Some(json!({"VALUE": [ident, serde_json::Value::Null]})),
+                            shadow: Some(false),
+                            top_level: Some(false),
+                            ..Default::default()
+                        },
+                        child_id.clone(),
+                    );
+
+                    json!([3, child_id.to_string(), [10, ""]])
+                }
+            }
+            Expr::Binary(_, _, _) => {
+                // TODO: type checking here, some operators can't be used as input for other operators
+                let id = self.gen_block_id();
+                self.compile_binary_expr(expr, parent_id.clone(), id.clone());
+                json!([3, id.to_string(), [10, ""]])
+            }
         }
     }
 
@@ -512,6 +501,35 @@ impl Compiler {
                         },
                         current_id,
                     );
+                }
+                Stmt::If(cond, body_true, body_false) => {
+                    // if-else
+                    if let Some(body_false) = body_false {
+                        //
+                    }
+                    // if
+                    else {
+                        let condition_id = self.gen_block_id();
+                        let substack_id = self.gen_block_id();
+
+                        let next_id = if (index + 1) >= body.len() {
+                            None
+                        } else {
+                            Some(self.peek_next_block_id())
+                        };
+
+                        // self.push_block(
+                        //     &Block {
+                        //         opcode: "control_if".to_string(),
+                        //         next: next_id,
+                        //         parent: Some(parent_id),
+                        //         inputs: Some(inputs),
+                        //         shadow: Some(false),
+                        //         top_level: Some(false),
+                        //     },
+                        //     current_id,
+                        // );
+                    }
                 }
                 _ => panic!("statment: {:#?} not valid in body", stmt),
             }
