@@ -49,5 +49,5 @@ fn main() {
     println!("{}", serde_json::to_string_pretty(project).unwrap());
     validate_project(project);
     package_project(project, targets, "project.sb3".into());
-    println!("project written to: project.sb3")
+    println!("project written to: project.sb3");
 }
