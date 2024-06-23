@@ -1,7 +1,5 @@
 event flag_clicked {
-	let x: string = "fortnite";
-	say(("asd" & "asd2"));
-	say((x & "balls"));
+	say("Hello, world!");
 }
 
 

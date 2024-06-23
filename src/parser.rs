@@ -60,7 +60,6 @@ impl Parser {
     // returns the type associated with the current token
     fn current_token(&self) -> TokenType {
         let token = self.tokens.get(self.position).unwrap().token_type.clone();
-        println!("{:#?}", token);
         token
     }
 
@@ -111,7 +110,6 @@ impl Parser {
 
         while self.current_token() != TokenType::EOF {
             let statement = self.parse_statement();
-            println!("{:#?}", statement);
             statements.push(statement);
         }
 
@@ -311,7 +309,6 @@ impl Parser {
             TokenType::Ident(value) => Expr::Identifier(value),
             TokenType::Bool(value) => Expr::Bool(value),
             TokenType::LeftParen => {
-                println!("parsing expression: {:?}", self.current_token());
                 let left = self.parse_expression();
                 let op = self.expect_operator();
                 let right = self.parse_expression();

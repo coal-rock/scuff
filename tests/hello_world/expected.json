@@ -1,0 +1,66 @@
+{
+	"targets": [
+		{
+			"isStage": true,
+			"name": "Stage",
+			"variables": {},
+			"lists": {},
+			"broadcasts": {},
+			"blocks": {},
+			"comments": {},
+			"costumes": [
+				{
+					"name": "backdrop1",
+					"dataFormat": "svg",
+					"assetId": "937711ba3842505f04a58f8d1bfa7435",
+					"md5ext": "937711ba3842505f04a58f8d1bfa7435.svg"
+				}
+			],
+			"sounds": []
+		},
+		{
+			"isStage": false,
+			"name": "sprite1",
+			"variables": {},
+			"lists": {},
+			"broadcasts": {},
+			"blocks": {
+				"a": {
+					"opcode": "event_whenflagclicked",
+					"next": "b",
+					"topLevel": true
+				},
+				"b": {
+					"opcode": "looks_say",
+					"parent": "a",
+					"inputs": {
+						"MESSAGE": [
+							1,
+							[
+								10,
+								"Hello, world!"
+							]
+						]
+					}
+				}
+			},
+			"comments": {},
+			"costumes": [
+				{
+					"name": "costume1",
+					"dataFormat": "svg",
+					"assetId": "937711ba3842505f04a58f8d1bfa7435",
+					"md5ext": "937711ba3842505f04a58f8d1bfa7435.svg"
+				}
+			],
+			"sounds": []
+		}
+	],
+	"monitors": [],
+	"extensions": [],
+	"meta": {
+		"semver": "3.0.0",
+		"vm": "0.2.0",
+		"agent": "scuff"
+	}
+}
