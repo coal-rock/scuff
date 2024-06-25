@@ -143,15 +143,17 @@ impl Compiler {
                 todo!("this will be removed, i just can't be fucked to bother with the lexer")
             }
             Operator::EqualEqual => {
-                self.compile_binary_expr(condition, parent_id, current_id)
+                self.compile_binary_expr(condition, parent_id, current_id);
             },
             Operator::And => {
-                self.compile_binary_expr(condition, parent_id, current_id)
+                self.compile_binary_expr(condition, parent_id, current_id);
             }
             Operator::Or => {
-                self.compile_binary_expr(condition, parent_id, current_id)
+                self.compile_binary_expr(condition, parent_id, current_id);
             }
-            Operator::BangEqual => todo!(),
+            Operator::BangEqual => {
+                self.compile_binary_expr(condition, parent_id, current_id);
+            },
             Operator::Greater => todo!(),
             Operator::Less => todo!(),
             Operator::GreaterEqual => todo!(),
@@ -210,7 +212,29 @@ impl Compiler {
                         current_id,
                     );
                 }
-                Operator::BangEqual => todo!(),
+                Operator::BangEqual => {
+                    let equals_id = self.gen_block_id();
+
+                    self.push_block(
+                        &Block {
+                            opcode: "operator_not".to_string(),
+                            parent: Some(parent_id.clone()),
+                            inputs: Some(HashMap::from([(
+                                "OPERAND".to_string(),
+                                json!([2, equals_id]),
+                            )])),
+                            shadow: Some(false),
+                            top_level: Some(false),
+                            ..Default::default()
+                        },
+                        current_id.clone(),
+                    );
+
+                    // FIXME: expensive cloning(?)
+                    let expression =
+                        Expr::Binary(left.clone(), Operator::EqualEqual, right.clone());
+                    self.compile_binary_expr(&expression, current_id, equals_id);
+                }
                 Operator::Greater => todo!(),
                 Operator::Less => todo!(),
                 Operator::GreaterEqual => todo!(),
@@ -302,10 +326,18 @@ impl Compiler {
                     json!([3, child_id.to_string(), [10, ""]])
                 }
             }
-            Expr::Binary(_, _, _) => {
+            Expr::Binary(_, op, _) => {
                 // TODO: type checking here, some operators can't be used as input for other operators
                 let id = self.gen_block_id();
                 self.compile_binary_expr(expr, parent_id.clone(), id.clone());
+                // TODO: the "3" here shouldn't be static, see comments above
+                // Project::Inputs
+                //
+                let input_shadow_num = match op {
+                    Operator::EqualEqual => 1,
+                    _ => todo!(),
+                };
+
                 json!([3, id.to_string(), [10, ""]])
             }
         }

@@ -1,12 +1,6 @@
 event flag_clicked {
-	let x: string = "aslkdj";
-	let y: string = "fortnite";
-
-	if ((x == y) or (1 == 1)) {
+	if (1 != 2) {
 		say("hello, world");
-	}
-	else {
-		say("L");
 	}
 }
 

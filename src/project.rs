@@ -70,6 +70,18 @@ pub struct Block {
     pub next: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub parent: Option<String>,
+    /// An object associating names with arrays representing inputs into
+    /// which other blocks may be dropped, including C mouths.
+    ///
+    /// The first element of each array is 1 if the input is a shadow,
+    /// 2 if there is no shadow, and 3 if there is a shadow but it is
+    /// obscured by the input.
+    ///
+    /// The second is either the ID of the input or an array representing
+    /// it as described in the table below.
+    ///
+    /// If there is an obscured shadow, the third element is its ID or
+    /// an array representing it.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub inputs: Option<HashMap<String, serde_json::Value>>,
     #[serde(skip_serializing_if = "Option::is_none")]
