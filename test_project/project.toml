@@ -1,0 +1,14 @@
+project_name = "hello_world"
+extensions = ["Pen"]
+
+[[stage]]
+name = "Stage"
+script = "stage1.scuff"
+backdrops = [{ name = "backdrop1", path = "backdrop1.svg" }]
+sounds = []
+
+[[sprite]]
+name = "sprite1"
+script = "sprite1.scuff"
+costumes = [{ name = "costume1", path = "costume1.svg" }]
+sounds = []

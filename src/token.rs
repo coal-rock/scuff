@@ -20,6 +20,9 @@ pub enum Operator {
     Star,
     Caret,
 
+    And,
+    Or,
+
     // hack?
     None,
 }
@@ -58,8 +61,6 @@ pub enum TokenType {
 
     If,
     Else,
-    And,
-    Or,
     Break,
     Continue,
     Return,

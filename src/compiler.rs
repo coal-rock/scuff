@@ -143,20 +143,14 @@ impl Compiler {
                 todo!("this will be removed, i just can't be fucked to bother with the lexer")
             }
             Operator::EqualEqual => {
-                let left_id = self.gen_block_id();
-                let right_id = self.gen_block_id();
-
-                self.compile_binary_expr(left, current_id.clone(), left_id);
-                self.compile_binary_expr(right, current_id.clone(), right_id);
-               
-                // self.push_block(&Block {
-                //     opcode: "operator_equals".to_string(),
-                //     parent: Some(parent_id),
-                //     inputs: 
-                //     ..Default::default()
-                // }, current_id);
-
+                self.compile_binary_expr(condition, parent_id, current_id)
             },
+            Operator::And => {
+                self.compile_binary_expr(condition, parent_id, current_id)
+            }
+            Operator::Or => {
+                self.compile_binary_expr(condition, parent_id, current_id)
+            }
             Operator::BangEqual => todo!(),
             Operator::Greater => todo!(),
             Operator::Less => todo!(),
@@ -194,7 +188,28 @@ impl Compiler {
                     )
                 }
                 Operator::Bang => todo!(),
-                Operator::EqualEqual => todo!(),
+                Operator::EqualEqual => {
+                    let inputs = HashMap::from([
+                        (
+                            "OPERAND1".to_string(),
+                            self.value_from_expr(left, current_id.clone()),
+                        ),
+                        (
+                            "OPERAND2".to_string(),
+                            self.value_from_expr(right, current_id.clone()),
+                        ),
+                    ]);
+
+                    self.push_block(
+                        &Block {
+                            opcode: "operator_equals".to_string(),
+                            parent: Some(parent_id),
+                            inputs: Some(inputs),
+                            ..Default::default()
+                        },
+                        current_id,
+                    );
+                }
                 Operator::BangEqual => todo!(),
                 Operator::Greater => todo!(),
                 Operator::Less => todo!(),
@@ -206,6 +221,50 @@ impl Compiler {
                 Operator::Star => todo!(),
                 Operator::Caret => todo!(),
                 Operator::None => panic!("we should never be here."),
+                Operator::And => {
+                    let inputs = HashMap::from([
+                        (
+                            "OPERAND1".to_string(),
+                            self.value_from_expr(left, current_id.clone()),
+                        ),
+                        (
+                            "OPERAND2".to_string(),
+                            self.value_from_expr(right, current_id.clone()),
+                        ),
+                    ]);
+
+                    self.push_block(
+                        &Block {
+                            opcode: "operator_and".to_string(),
+                            parent: Some(parent_id),
+                            inputs: Some(inputs),
+                            ..Default::default()
+                        },
+                        current_id,
+                    );
+                }
+                Operator::Or => {
+                    let inputs = HashMap::from([
+                        (
+                            "OPERAND1".to_string(),
+                            self.value_from_expr(left, current_id.clone()),
+                        ),
+                        (
+                            "OPERAND2".to_string(),
+                            self.value_from_expr(right, current_id.clone()),
+                        ),
+                    ]);
+
+                    self.push_block(
+                        &Block {
+                            opcode: "operator_or".to_string(),
+                            parent: Some(parent_id),
+                            inputs: Some(inputs),
+                            ..Default::default()
+                        },
+                        current_id,
+                    );
+                }
             },
         }
     }
@@ -520,32 +579,56 @@ impl Compiler {
                     );
                 }
                 Stmt::If(cond, body_true, body_false) => {
+                    let condition_id = self.gen_block_id();
+
+                    let next_id = if (index + 1) >= body.len() {
+                        None
+                    } else {
+                        Some(self.peek_next_block_id())
+                    };
+
+                    self.compile_condition(cond, current_id.clone(), condition_id.clone());
+
+                    let substack_id = self.peek_next_block_id();
+                    self.compile_body_statements(body_true, current_id.clone());
+
+                    let mut inputs = HashMap::new();
+                    inputs.insert("CONDITION".to_string(), json!([2, condition_id]));
+                    inputs.insert("SUBSTACK".to_string(), json!([2, substack_id]));
+
                     // if-else
                     if let Some(body_false) = body_false {
-                        //
+                        let substack2_id = self.peek_next_block_id();
+                        self.compile_body_statements(body_false, current_id.clone());
+                        inputs.insert("SUBSTACK2".to_string(), json!([2, substack2_id]));
+
+                        self.push_block(
+                            &Block {
+                                opcode: "control_if_else".to_string(),
+                                next: next_id,
+                                parent: Some(parent_id.clone()),
+                                inputs: Some(inputs),
+                                shadow: Some(false),
+                                top_level: Some(false),
+                                ..Default::default()
+                            },
+                            current_id,
+                        );
                     }
                     // if
                     else {
-                        let condition_id = self.gen_block_id();
-                        let substack_id = self.gen_block_id();
-
-                        let next_id = if (index + 1) >= body.len() {
-                            None
-                        } else {
-                            Some(self.peek_next_block_id())
-                        };
-
-                        // self.push_block(
-                        //     &Block {
-                        //         opcode: "control_if".to_string(),
-                        //         next: next_id,
-                        //         parent: Some(parent_id),
-                        //         inputs: Some(inputs),
-                        //         shadow: Some(false),
-                        //         top_level: Some(false),
-                        //     },
-                        //     current_id,
-                        // );
+                        self.push_block(
+                            &Block {
+                                opcode: "control_if".to_string(),
+                                next: next_id,
+                                parent: Some(parent_id.clone()),
+                                inputs: Some(inputs),
+                                shadow: Some(false),
+                                top_level: Some(false),
+                                ..Default::default()
+                            },
+                            current_id,
+                        );
                     }
                 }
                 _ => panic!("statment: {:#?} not valid in body", stmt),

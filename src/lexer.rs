@@ -112,8 +112,8 @@ impl Lexer {
         match string.as_str() {
             "if" => Some(TokenType::If),
             "else" => Some(TokenType::Else),
-            "and" => Some(TokenType::And),
-            "or" => Some(TokenType::Or),
+            "and" => Some(TokenType::Operator(Operator::And)),
+            "or" => Some(TokenType::Operator(Operator::Or)),
             "break" => Some(TokenType::Break),
             "continue" => Some(TokenType::Continue),
             "return" => Some(TokenType::Return),
