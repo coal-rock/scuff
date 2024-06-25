@@ -1,7 +1,5 @@
 event flag_clicked {
-	if (1 != 2) {
-		say("hello, world");
+        while (1 == 1) {
+		let x: string = (x & "a");
 	}
 }
-
-

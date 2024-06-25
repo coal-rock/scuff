@@ -293,6 +293,56 @@ impl Compiler {
         }
     }
 
+    fn compile_conditional_control(
+        &mut self,
+        opcode: &str,
+        cond: &Expr,
+        substacks: (Option<&Vec<Stmt>>, Option<&Vec<Stmt>>),
+        current_id: String,
+        parent_id: String,
+        index: usize,
+        body_len: usize,
+    ) {
+        let condition_id = self.gen_block_id();
+
+        self.compile_condition(cond, current_id.clone(), condition_id.clone());
+
+        let mut inputs = HashMap::new();
+        inputs.insert("CONDITION".to_string(), json!([2, condition_id]));
+
+        // TODO: remove this code-duplication
+        if let Some(substack) = substacks.0 {
+            let substack_id = self.peek_next_block_id();
+            self.compile_body_statements(substack, current_id.clone());
+            inputs.insert("SUBSTACK".to_string(), json!([2, substack_id]));
+        }
+
+        if let Some(substack) = substacks.1 {
+            let substack_id = self.peek_next_block_id();
+            self.compile_body_statements(substack, current_id.clone());
+            inputs.insert("SUBSTACK2".to_string(), json!([2, substack_id]));
+        }
+
+        let next_id = if (index + 1) >= body_len {
+            None
+        } else {
+            Some(self.peek_next_block_id())
+        };
+
+        self.push_block(
+            &Block {
+                opcode: opcode.to_string(),
+                next: next_id,
+                parent: Some(parent_id.clone()),
+                inputs: Some(inputs),
+                shadow: Some(false),
+                top_level: Some(false),
+                ..Default::default()
+            },
+            current_id,
+        );
+    }
+
     fn value_from_expr(&mut self, expr: &Expr, parent_id: String) -> Value {
         match expr {
             Expr::String(value) => json!([1, [10, value.to_string()]]),
@@ -610,56 +660,40 @@ impl Compiler {
                         current_id,
                     );
                 }
+                Stmt::While(cond, body_true) => {
+                    self.compile_conditional_control(
+                        "control_while",
+                        cond,
+                        (Some(body_true), None),
+                        current_id,
+                        parent_id.clone(),
+                        index,
+                        body.len(),
+                    );
+                }
                 Stmt::If(cond, body_true, body_false) => {
-                    let condition_id = self.gen_block_id();
-
-                    let next_id = if (index + 1) >= body.len() {
-                        None
-                    } else {
-                        Some(self.peek_next_block_id())
-                    };
-
-                    self.compile_condition(cond, current_id.clone(), condition_id.clone());
-
-                    let substack_id = self.peek_next_block_id();
-                    self.compile_body_statements(body_true, current_id.clone());
-
-                    let mut inputs = HashMap::new();
-                    inputs.insert("CONDITION".to_string(), json!([2, condition_id]));
-                    inputs.insert("SUBSTACK".to_string(), json!([2, substack_id]));
-
                     // if-else
                     if let Some(body_false) = body_false {
-                        let substack2_id = self.peek_next_block_id();
-                        self.compile_body_statements(body_false, current_id.clone());
-                        inputs.insert("SUBSTACK2".to_string(), json!([2, substack2_id]));
-
-                        self.push_block(
-                            &Block {
-                                opcode: "control_if_else".to_string(),
-                                next: next_id,
-                                parent: Some(parent_id.clone()),
-                                inputs: Some(inputs),
-                                shadow: Some(false),
-                                top_level: Some(false),
-                                ..Default::default()
-                            },
+                        self.compile_conditional_control(
+                            "control_if_else",
+                            cond,
+                            (Some(body_true), Some(body_false)),
                             current_id,
+                            parent_id.clone(),
+                            index,
+                            body.len(),
                         );
                     }
                     // if
                     else {
-                        self.push_block(
-                            &Block {
-                                opcode: "control_if".to_string(),
-                                next: next_id,
-                                parent: Some(parent_id.clone()),
-                                inputs: Some(inputs),
-                                shadow: Some(false),
-                                top_level: Some(false),
-                                ..Default::default()
-                            },
+                        self.compile_conditional_control(
+                            "control_if",
+                            cond,
+                            (Some(body_true), None),
                             current_id,
+                            parent_id.clone(),
+                            index,
+                            body.len(),
                         );
                     }
                 }
