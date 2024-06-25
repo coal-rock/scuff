@@ -25,23 +25,46 @@
 			"lists": {},
 			"broadcasts": {},
 			"blocks": {
+				"a": {
+					"opcode": "event_whenflagclicked",
+					"next": "b",
+					"topLevel": true
+				},
 				"b": {
 					"opcode": "looks_say",
 					"parent": "a",
 					"inputs": {
 						"MESSAGE": [
-							1,
+							3,
+							"c",
 							[
 								10,
-								"Hello, world!"
+								""
 							]
 						]
 					}
 				},
-				"a": {
-					"opcode": "event_whenflagclicked",
-					"next": "b",
-					"topLevel": true
+				"c": {
+					"opcode": "operator_join",
+					"parent": "b",
+					"inputs": {
+						"STRING2": [
+							1,
+							[
+								10,
+								"world!"
+							]
+						],
+						"STRING1": [
+							1,
+							[
+								10,
+								"Hello, "
+							]
+						]
+					},
+					"shadow": false,
+					"topLevel": false
 				}
 			},
 			"comments": {},

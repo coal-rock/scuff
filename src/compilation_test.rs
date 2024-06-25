@@ -1,6 +1,3 @@
-use crate::lexer::Lexer;
-use crate::makefile::TargetData;
-use crate::parser::{Parser, Stmt};
 use crate::test_file;
 
 use assert_json_diff::assert_json_eq;
@@ -8,6 +5,7 @@ use serde_json::Value;
 use std::fs::read_to_string;
 
 test_file!(hello_world);
+test_file!(join_string);
 
 #[macro_export]
 macro_rules! test_file {

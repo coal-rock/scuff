@@ -1,0 +1,5 @@
+event flag_clicked {
+	say(("Hello, " & "world!"));
+}
+
+
