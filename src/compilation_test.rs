@@ -6,6 +6,9 @@ use std::fs::read_to_string;
 
 test_file!(hello_world);
 test_file!(join_string);
+test_file!(join_variables);
+test_file!(functions);
+test_file!(function_args);
 
 #[macro_export]
 macro_rules! test_file {

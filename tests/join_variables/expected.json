@@ -1,0 +1,177 @@
+{
+	"targets": [
+		{
+			"isStage": true,
+			"name": "Stage",
+			"variables": {},
+			"lists": {},
+			"broadcasts": {},
+			"blocks": {},
+			"comments": {},
+			"costumes": [
+				{
+					"name": "backdrop1",
+					"dataFormat": "svg",
+					"assetId": "937711ba3842505f04a58f8d1bfa7435",
+					"md5ext": "937711ba3842505f04a58f8d1bfa7435.svg"
+				}
+			],
+			"sounds": []
+		},
+		{
+			"isStage": false,
+			"name": "sprite1",
+			"variables": {
+				"var_2": [
+					"y",
+					0
+				],
+				"var_3": [
+					"xy",
+					0
+				],
+				"var_1": [
+					"x",
+					0
+				]
+			},
+			"lists": {},
+			"broadcasts": {},
+			"blocks": {
+				"e": {
+					"opcode": "operator_join",
+					"parent": "d",
+					"inputs": {
+						"STRING1": [
+							3,
+							[
+								12,
+								"x",
+								"var_1"
+							],
+							[
+								10,
+								""
+							]
+						],
+						"STRING2": [
+							3,
+							[
+								12,
+								"y",
+								"var_2"
+							],
+							[
+								10,
+								""
+							]
+						]
+					},
+					"shadow": false,
+					"topLevel": false
+				},
+				"f": {
+					"opcode": "looks_say",
+					"parent": "a",
+					"inputs": {
+						"MESSAGE": [
+							3,
+							[
+								12,
+								"xy",
+								"var_3"
+							],
+							[
+								10,
+								""
+							]
+						]
+					}
+				},
+				"a": {
+					"opcode": "event_whenflagclicked",
+					"next": "b",
+					"topLevel": true
+				},
+				"b": {
+					"opcode": "data_setvariableto",
+					"next": "c",
+					"parent": "a",
+					"inputs": {
+						"VALUE": [
+							1,
+							[
+								10,
+								"Hello, "
+							]
+						]
+					},
+					"fields": {
+						"VARIABLE": [
+							"x",
+							"var_1"
+						]
+					}
+				},
+				"c": {
+					"opcode": "data_setvariableto",
+					"next": "d",
+					"parent": "a",
+					"inputs": {
+						"VALUE": [
+							1,
+							[
+								10,
+								"world!"
+							]
+						]
+					},
+					"fields": {
+						"VARIABLE": [
+							"y",
+							"var_2"
+						]
+					}
+				},
+				"d": {
+					"opcode": "data_setvariableto",
+					"next": "f",
+					"parent": "a",
+					"inputs": {
+						"VALUE": [
+							3,
+							"e",
+							[
+								10,
+								""
+							]
+						]
+					},
+					"fields": {
+						"VARIABLE": [
+							"xy",
+							"var_3"
+						]
+					}
+				}
+			},
+			"comments": {},
+			"costumes": [
+				{
+					"name": "costume1",
+					"dataFormat": "svg",
+					"assetId": "937711ba3842505f04a58f8d1bfa7435",
+					"md5ext": "937711ba3842505f04a58f8d1bfa7435.svg"
+				}
+			],
+			"sounds": []
+		}
+	],
+	"monitors": [],
+	"extensions": [],
+	"meta": {
+		"semver": "3.0.0",
+		"vm": "0.2.0",
+		"agent": "scuff"
+	}
+}

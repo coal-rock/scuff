@@ -1,0 +1,158 @@
+{
+	"targets": [
+		{
+			"isStage": true,
+			"name": "Stage",
+			"variables": {},
+			"lists": {},
+			"broadcasts": {},
+			"blocks": {},
+			"comments": {},
+			"costumes": [
+				{
+					"name": "backdrop1",
+					"dataFormat": "svg",
+					"assetId": "937711ba3842505f04a58f8d1bfa7435",
+					"md5ext": "937711ba3842505f04a58f8d1bfa7435.svg"
+				}
+			],
+			"sounds": []
+		},
+		{
+			"isStage": false,
+			"name": "sprite1",
+			"variables": {},
+			"lists": {},
+			"broadcasts": {},
+			"blocks": {
+				"b": {
+					"opcode": "procedures_definition",
+					"next": "c",
+					"inputs": {
+						"custom_block": [
+							1,
+							"a"
+						]
+					},
+					"topLevel": true
+				},
+				"c": {
+					"opcode": "looks_say",
+					"parent": "b",
+					"inputs": {
+						"MESSAGE": [
+							1,
+							[
+								10,
+								"Hello, "
+							]
+						]
+					}
+				},
+				"d": {
+					"opcode": "procedures_prototype",
+					"parent": "e",
+					"inputs": {},
+					"shadow": true,
+					"topLevel": false,
+					"mutation": {
+						"tagName": "mutation",
+						"children": [],
+						"proccode": "world",
+						"argumentids": "[]",
+						"argumentnames": "[]",
+						"argumentdefaults": "[]",
+						"warp": "false"
+					}
+				},
+				"f": {
+					"opcode": "looks_say",
+					"parent": "e",
+					"inputs": {
+						"MESSAGE": [
+							1,
+							[
+								10,
+								"world!"
+							]
+						]
+					}
+				},
+				"g": {
+					"opcode": "event_whenflagclicked",
+					"next": "h",
+					"topLevel": true
+				},
+				"a": {
+					"opcode": "procedures_prototype",
+					"parent": "b",
+					"inputs": {},
+					"shadow": true,
+					"topLevel": false,
+					"mutation": {
+						"tagName": "mutation",
+						"children": [],
+						"proccode": "hello",
+						"argumentids": "[]",
+						"argumentnames": "[]",
+						"argumentdefaults": "[]",
+						"warp": "false"
+					}
+				},
+				"e": {
+					"opcode": "procedures_definition",
+					"next": "f",
+					"inputs": {
+						"custom_block": [
+							1,
+							"d"
+						]
+					},
+					"topLevel": true
+				},
+				"h": {
+					"opcode": "procedures_call",
+					"next": "i",
+					"parent": "g",
+					"inputs": {},
+					"mutation": {
+						"tagName": "mutation",
+						"children": [],
+						"proccode": "hello",
+						"argumentids": "[]",
+						"warp": "false"
+					}
+				},
+				"i": {
+					"opcode": "procedures_call",
+					"parent": "g",
+					"inputs": {},
+					"mutation": {
+						"tagName": "mutation",
+						"children": [],
+						"proccode": "world",
+						"argumentids": "[]",
+						"warp": "false"
+					}
+				}
+			},
+			"comments": {},
+			"costumes": [
+				{
+					"name": "costume1",
+					"dataFormat": "svg",
+					"assetId": "937711ba3842505f04a58f8d1bfa7435",
+					"md5ext": "937711ba3842505f04a58f8d1bfa7435.svg"
+				}
+			],
+			"sounds": []
+		}
+	],
+	"monitors": [],
+	"extensions": [],
+	"meta": {
+		"semver": "3.0.0",
+		"vm": "0.2.0",
+		"agent": "scuff"
+	}
+}

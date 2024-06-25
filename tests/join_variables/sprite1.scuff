@@ -1,0 +1,8 @@
+event flag_clicked {
+	let x: string = "Hello, ";
+	let y: string = "world!";
+
+	let xy: string = (x & y);
+	say(xy);
+}
+

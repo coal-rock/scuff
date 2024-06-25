@@ -1,0 +1,13 @@
+function hello() -> void {
+	say("Hello, ");
+}
+
+function world() -> void {
+	say("world!");
+}
+
+event flag_clicked {
+	hello();
+	world();
+}
+

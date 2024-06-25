@@ -1,0 +1,8 @@
+function join_and_say(arg1: string, arg2: string) -> void {
+	say((arg1 & arg2));
+}
+
+event flag_clicked {
+	join_and_say("Hello, ", "world!");
+}
+

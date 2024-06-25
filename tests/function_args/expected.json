@@ -1,0 +1,202 @@
+{
+	"targets": [
+		{
+			"isStage": true,
+			"name": "Stage",
+			"variables": {},
+			"lists": {},
+			"broadcasts": {},
+			"blocks": {},
+			"comments": {},
+			"costumes": [
+				{
+					"name": "backdrop1",
+					"dataFormat": "svg",
+					"assetId": "937711ba3842505f04a58f8d1bfa7435",
+					"md5ext": "937711ba3842505f04a58f8d1bfa7435.svg"
+				}
+			],
+			"sounds": []
+		},
+		{
+			"isStage": false,
+			"name": "sprite1",
+			"variables": {},
+			"lists": {},
+			"broadcasts": {},
+			"blocks": {
+				"b": {
+					"opcode": "procedures_definition",
+					"next": "e",
+					"inputs": {
+						"custom_block": [
+							1,
+							"a"
+						]
+					},
+					"topLevel": true
+				},
+				"f": {
+					"opcode": "operator_join",
+					"parent": "e",
+					"inputs": {
+						"STRING2": [
+							3,
+							"h",
+							[
+								10,
+								""
+							]
+						],
+						"STRING1": [
+							3,
+							"g",
+							[
+								10,
+								""
+							]
+						]
+					},
+					"shadow": false,
+					"topLevel": false
+				},
+				"d": {
+					"opcode": "argument_reporter_string_number",
+					"parent": "a",
+					"fields": {
+						"VALUE": [
+							"arg2",
+							null
+						]
+					},
+					"shadow": true,
+					"topLevel": false
+				},
+				"h": {
+					"opcode": "argument_reporter_string_number",
+					"parent": "f",
+					"fields": {
+						"VALUE": [
+							"arg2",
+							null
+						]
+					},
+					"shadow": false,
+					"topLevel": false
+				},
+				"g": {
+					"opcode": "argument_reporter_string_number",
+					"parent": "f",
+					"fields": {
+						"VALUE": [
+							"arg1",
+							null
+						]
+					},
+					"shadow": false,
+					"topLevel": false
+				},
+				"c": {
+					"opcode": "argument_reporter_string_number",
+					"parent": "a",
+					"fields": {
+						"VALUE": [
+							"arg1",
+							null
+						]
+					},
+					"shadow": true,
+					"topLevel": false
+				},
+				"a": {
+					"opcode": "procedures_prototype",
+					"parent": "b",
+					"inputs": {
+						"arg_2": [
+							1,
+							"d"
+						],
+						"arg_1": [
+							1,
+							"c"
+						]
+					},
+					"shadow": true,
+					"topLevel": false,
+					"mutation": {
+						"tagName": "mutation",
+						"children": [],
+						"proccode": "join_and_say %s %s",
+						"argumentids": "[\"arg_1\",\"arg_2\"]",
+						"argumentnames": "[\"arg1\",\"arg2\"]",
+						"argumentdefaults": "[\"\",\"\"]",
+						"warp": "false"
+					}
+				},
+				"i": {
+					"opcode": "event_whenflagclicked",
+					"next": "j",
+					"topLevel": true
+				},
+				"j": {
+					"opcode": "procedures_call",
+					"parent": "i",
+					"inputs": {
+						"arg_2": [
+							1,
+							[
+								10,
+								"world!"
+							]
+						],
+						"arg_1": [
+							1,
+							[
+								10,
+								"Hello, "
+							]
+						]
+					},
+					"mutation": {
+						"tagName": "mutation",
+						"children": [],
+						"proccode": "join_and_say %s %s",
+						"argumentids": "[\"arg_1\", \"arg_2\"]",
+						"warp": "false"
+					}
+				},
+				"e": {
+					"opcode": "looks_say",
+					"parent": "b",
+					"inputs": {
+						"MESSAGE": [
+							3,
+							"f",
+							[
+								10,
+								""
+							]
+						]
+					}
+				}
+			},
+			"comments": {},
+			"costumes": [
+				{
+					"name": "costume1",
+					"dataFormat": "svg",
+					"assetId": "937711ba3842505f04a58f8d1bfa7435",
+					"md5ext": "937711ba3842505f04a58f8d1bfa7435.svg"
+				}
+			],
+			"sounds": []
+		}
+	],
+	"monitors": [],
+	"extensions": [],
+	"meta": {
+		"semver": "3.0.0",
+		"vm": "0.2.0",
+		"agent": "scuff"
+	}
+}
