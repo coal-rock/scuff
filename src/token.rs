@@ -23,6 +23,11 @@ pub enum Operator {
     And,
     Or,
 
+    PlusEqual,
+    MinusEqual,
+    StarEqual,
+    SlashEqual,
+
     // hack?
     None,
 }

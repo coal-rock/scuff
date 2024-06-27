@@ -1,4 +1,4 @@
-use std::i8;
+use std::{i8, io::Write};
 
 use crate::{
     error::parse_error,
@@ -33,10 +33,19 @@ pub enum Key {
 }
 
 #[derive(Debug, Clone)]
+pub enum MutationOperator {
+    AddEqual,
+    SubEqual,
+    MultEqual,
+    DivEqual,
+}
+
+#[derive(Debug, Clone)]
 pub enum Stmt {
     Expression(Expr),
     VariableDeclaration(String, Type, Expr), // name, type, value
     VariableAssignment(String, Expr),
+    VariableMutation(String, MutationOperator, Expr),
     FunctionDeclaration(String, Vec<(String, Type)>, Vec<Stmt>, Type), // name, arguments, body, return type
     EventHandler(Event, Vec<Stmt>),                                    // event, body
     FunctionCall(String, Vec<Expr>),                                   // name, arguments
@@ -273,6 +282,22 @@ impl Parser {
                     self.advance();
 
                     Stmt::VariableAssignment(ident, value)
+                }
+                TokenType::Operator(op) => {
+                    let op = match op {
+                        Operator::PlusEqual => MutationOperator::AddEqual,
+                        Operator::MinusEqual => MutationOperator::SubEqual,
+                        Operator::StarEqual => MutationOperator::MultEqual,
+                        Operator::SlashEqual => MutationOperator::DivEqual,
+                        _ => todo!(),
+                    };
+
+                    self.advance();
+                    let value = self.parse_expression();
+                    self.expect(TokenType::Semicolon);
+                    self.advance();
+
+                    Stmt::VariableMutation(ident, op, value)
                 }
                 _ => panic!(
                     "unexpected token after parsing ident: {:?}",

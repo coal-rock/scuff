@@ -102,6 +102,17 @@ impl Lexer {
         }
     }
 
+    fn add_token_many_cond(&mut self, expected_matches: &[(char, TokenType)], fails: TokenType) {
+        for pair in expected_matches {
+            if self.compare(pair.0.clone()) {
+                self.add_token(pair.1.clone());
+                return;
+            }
+        }
+
+        self.add_token(fails);
+    }
+
     fn add_token(&mut self, token_type: TokenType) {
         let string: String = self.source[self.start..self.current].to_string();
 
@@ -201,9 +212,24 @@ impl Lexer {
             '.' => self.add_token(TokenType::Dot),
             ';' => self.add_token(TokenType::Semicolon),
             ':' => self.add_token(TokenType::Colon),
-            '+' => self.add_token(TokenType::Operator(Operator::Plus)),
+            '+' => self.add_token_cond(
+                '=',
+                TokenType::Operator(Operator::PlusEqual),
+                TokenType::Operator(Operator::Plus),
+            ),
+            '-' => self.add_token_many_cond(
+                &[
+                    ('>', TokenType::Arrow),
+                    ('=', TokenType::Operator(Operator::MinusEqual)),
+                ],
+                TokenType::Operator(Operator::Minus),
+            ),
+            '*' => self.add_token_cond(
+                '=',
+                TokenType::Operator(Operator::StarEqual),
+                TokenType::Operator(Operator::Star),
+            ),
             '&' => self.add_token(TokenType::Operator(Operator::Ampersand)),
-            '*' => self.add_token(TokenType::Operator(Operator::Star)),
             '^' => self.add_token(TokenType::Operator(Operator::Caret)),
             '!' => self.add_token_cond(
                 '=',
@@ -225,14 +251,17 @@ impl Lexer {
                 TokenType::Operator(Operator::GreaterEqual),
                 TokenType::Operator(Operator::Greater),
             ),
-            '-' => self.add_token_cond('>', TokenType::Arrow, TokenType::Operator(Operator::Minus)),
             '/' => {
                 if self.compare('/') {
                     while self.peek() != '\n' && !self.is_at_end() {
                         self.advance();
                     }
                 } else {
-                    self.add_token(TokenType::Operator(Operator::Slash));
+                    self.add_token_cond(
+                        '=',
+                        TokenType::Operator(Operator::SlashEqual),
+                        TokenType::Operator(Operator::Slash),
+                    );
                 }
             }
             '"' => self.lex_string(),

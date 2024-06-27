@@ -1,5 +1,6 @@
 event flag_clicked {
-        while (1 == 1) {
-		let x: string = (x & "a");
-	}
+	let x: string = ("1" & "1");
+	let y: number = (1 * 2);
+	let y: number = (1 * 2);
+	say(y);
 }

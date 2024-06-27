@@ -49,7 +49,9 @@ pub fn compile_project(makefile_path: String) -> (Project, Vec<(TargetData, Vec<
         // println!("------------------------------------------------------------------");
 
         let mut parser = Parser::new(tokens);
-        targets.push((target, parser.parse()));
+        let parsed = parser.parse();
+        println!("{:#?}", parsed);
+        targets.push((target, parsed));
     }
 
     // println!("{:#?}", targets);

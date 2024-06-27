@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::io::Write;
 
 use md5::{Digest, Md5};
 use serde_json::{json, Value};
@@ -171,23 +170,15 @@ impl Compiler {
             Expr::Binary(left, op, right) => match op {
                 // string concat lol
                 Operator::Ampersand => {
-                    let string_1 = self.value_from_expr(left, current_id.clone());
-                    let string_2 = self.value_from_expr(right, current_id.clone());
-
-                    self.push_block(
-                        &Block {
-                            opcode: "operator_join".to_string(),
-                            parent: Some(parent_id.to_string()),
-                            inputs: Some(HashMap::from([
-                                ("STRING1".to_string(), string_1),
-                                ("STRING2".to_string(), string_2),
-                            ])),
-                            shadow: Some(false),
-                            top_level: Some(false),
-                            ..Default::default()
-                        },
+                    self.compile_simple_operator(
+                        "STRING1",
+                        "STRING2",
+                        left,
+                        right,
+                        "operator_join",
                         current_id,
-                    )
+                        parent_id,
+                    );
                 }
                 Operator::Bang => todo!(),
                 Operator::EqualEqual => {
@@ -239,10 +230,50 @@ impl Compiler {
                 Operator::Less => todo!(),
                 Operator::GreaterEqual => todo!(),
                 Operator::LessEqual => todo!(),
-                Operator::Minus => todo!(),
-                Operator::Plus => todo!(),
-                Operator::Slash => todo!(),
-                Operator::Star => todo!(),
+                Operator::Minus => {
+                    self.compile_simple_operator(
+                        "NUM1",
+                        "NUM2",
+                        left,
+                        right,
+                        "operator_subtract",
+                        current_id,
+                        parent_id,
+                    );
+                }
+                Operator::Plus => {
+                    self.compile_simple_operator(
+                        "NUM1",
+                        "NUM2",
+                        left,
+                        right,
+                        "operator_add",
+                        current_id,
+                        parent_id,
+                    );
+                }
+                Operator::Slash => {
+                    self.compile_simple_operator(
+                        "NUM1",
+                        "NUM2",
+                        left,
+                        right,
+                        "operator_divide",
+                        current_id,
+                        parent_id,
+                    );
+                }
+                Operator::Star => {
+                    self.compile_simple_operator(
+                        "NUM1",
+                        "NUM2",
+                        left,
+                        right,
+                        "operator_multiply",
+                        current_id,
+                        parent_id,
+                    );
+                }
                 Operator::Caret => todo!(),
                 Operator::None => panic!("we should never be here."),
                 Operator::And => {
@@ -289,8 +320,41 @@ impl Compiler {
                         current_id,
                     );
                 }
+                Operator::PlusEqual => todo!(),
+                Operator::MinusEqual => todo!(),
+                Operator::StarEqual => todo!(),
+                Operator::SlashEqual => todo!(),
             },
         }
+    }
+
+    fn compile_simple_operator(
+        &mut self,
+        key1: &str,
+        key2: &str,
+        val1: &Expr,
+        val2: &Expr,
+        opcode: &str,
+        current_id: String,
+        parent_id: String,
+    ) {
+        let val1 = self.value_from_expr(val1, current_id.clone());
+        let val2 = self.value_from_expr(val2, current_id.clone());
+
+        self.push_block(
+            &Block {
+                opcode: opcode.to_string(),
+                parent: Some(parent_id.to_string()),
+                inputs: Some(HashMap::from([
+                    (key1.to_string(), val1),
+                    (key2.to_string(), val2),
+                ])),
+                shadow: Some(false),
+                top_level: Some(true),
+                ..Default::default()
+            },
+            current_id,
+        )
     }
 
     fn compile_conditional_control(
@@ -385,7 +449,7 @@ impl Compiler {
                 //
                 let input_shadow_num = match op {
                     Operator::EqualEqual => 1,
-                    _ => todo!(),
+                    _ => 1,
                 };
 
                 json!([3, id.to_string(), [10, ""]])
@@ -619,25 +683,27 @@ impl Compiler {
                     let var_id =
                         self.push_var(self.scope.clone(), var_name.clone(), var_type.clone());
 
-                    let value = match expr {
-                        Expr::Number(value) => json!([1, [10, value.to_string()]]),
-                        Expr::String(value) => json!([1, [10, value.to_string()]]),
-                        Expr::Identifier(ident) => {
-                            let ident_id = self.get_var_id(self.scope.clone(), ident.clone());
-                            json!([1, [12, ident, ident_id]])
-                        }
-                        Expr::Bool(_) => todo!(),
-                        Expr::Binary(_, _, _) => {
-                            let expr_block_id = self.gen_block_id();
-                            self.compile_binary_expr(
-                                expr,
-                                current_id.clone(),
-                                expr_block_id.clone(),
-                            );
+                    let value = self.value_from_expr(expr, current_id.clone());
 
-                            json!([3, expr_block_id, [10, ""]])
-                        }
-                    };
+                    // let value = match expr {
+                    //     Expr::Number(value) => json!([1, [10, value.to_string()]]),
+                    //     Expr::String(value) => json!([1, [10, value.to_string()]]),
+                    //     Expr::Identifier(ident) => {
+                    //         let ident_id = self.get_var_id(self.scope.clone(), ident.clone());
+                    //         json!([1, [12, ident, ident_id]])
+                    //     }
+                    //     Expr::Bool(_) => todo!(),
+                    //     Expr::Binary(_, _, _) => {
+                    //         let expr_block_id = self.gen_block_id();
+                    //         self.compile_binary_expr(
+                    //             expr,
+                    //             current_id.clone(),
+                    //             expr_block_id.clone(),
+                    //         );
+                    //
+                    //         json!([3, expr_block_id, [10, ""]])
+                    //     }
+                    // };
 
                     let mut inputs = HashMap::new();
                     inputs.insert("VALUE".to_string(), value);
@@ -697,6 +763,9 @@ impl Compiler {
                         );
                     }
                 }
+                Stmt::VariableAssignment(var_name, value) => {}
+                Stmt::VariableMutation(var_name, op, value) => {}
+
                 _ => panic!("statment: {:#?} not valid in body", stmt),
             }
         }
@@ -1224,6 +1293,7 @@ impl Compiler {
     /// returns the ID of the variable
     fn push_var(&mut self, scope: Scope, var_name: String, var_type: Type) -> String {
         // add an empty hashmap for the scope if it doesn't exist within the var table
+        // TODO: add heiarchy to scope
         if !self
             .var_table
             .clone()
@@ -1232,6 +1302,8 @@ impl Compiler {
             .contains(&scope)
         {
             self.var_table.insert(scope.clone(), HashMap::new());
+        } else {
+            panic!("variable {:?} already exists in scope", var_name);
         }
 
         let var_id = self.gen_var_id().to_string();
