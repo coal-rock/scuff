@@ -685,26 +685,6 @@ impl Compiler {
 
                     let value = self.value_from_expr(expr, current_id.clone());
 
-                    // let value = match expr {
-                    //     Expr::Number(value) => json!([1, [10, value.to_string()]]),
-                    //     Expr::String(value) => json!([1, [10, value.to_string()]]),
-                    //     Expr::Identifier(ident) => {
-                    //         let ident_id = self.get_var_id(self.scope.clone(), ident.clone());
-                    //         json!([1, [12, ident, ident_id]])
-                    //     }
-                    //     Expr::Bool(_) => todo!(),
-                    //     Expr::Binary(_, _, _) => {
-                    //         let expr_block_id = self.gen_block_id();
-                    //         self.compile_binary_expr(
-                    //             expr,
-                    //             current_id.clone(),
-                    //             expr_block_id.clone(),
-                    //         );
-                    //
-                    //         json!([3, expr_block_id, [10, ""]])
-                    //     }
-                    // };
-
                     let mut inputs = HashMap::new();
                     inputs.insert("VALUE".to_string(), value);
 
@@ -763,8 +743,71 @@ impl Compiler {
                         );
                     }
                 }
-                Stmt::VariableAssignment(var_name, value) => {}
-                Stmt::VariableMutation(var_name, op, value) => {}
+                Stmt::VariableAssignment(var_name, expr) => {
+                    let var_id = self.get_var_id(self.scope.clone(), var_name.to_string());
+                    let value = self.value_from_expr(expr, current_id.clone());
+
+                    let mut inputs = HashMap::new();
+                    inputs.insert("VALUE".to_string(), value);
+
+                    let next_id = if (index + 1) >= body.len() {
+                        None
+                    } else {
+                        Some(self.peek_next_block_id())
+                    };
+
+                    self.push_block(
+                        &Block {
+                            opcode: "data_setvariableto".to_string(),
+                            parent: Some(parent_id.clone()),
+                            inputs: Some(inputs),
+                            fields: Some(json!({"VARIABLE": [var_name, var_id]})),
+                            next: next_id,
+                            ..Block::default()
+                        },
+                        current_id,
+                    );
+                }
+                Stmt::VariableMutation(var_name, op, mutation_value) => {
+                    let var_id = self.get_var_id(self.scope.clone(), var_name.to_string());
+
+                    // hack?
+                    let op = match op {
+                        crate::parser::MutationOperator::AddEqual => Operator::Plus,
+                        crate::parser::MutationOperator::SubEqual => Operator::Minus,
+                        crate::parser::MutationOperator::MultEqual => Operator::Star,
+                        crate::parser::MutationOperator::DivEqual => Operator::Slash,
+                    };
+
+                    let expr = Expr::Binary(
+                        Box::new(Expr::Identifier(var_name.to_string())),
+                        op,
+                        Box::new(mutation_value.clone()),
+                    );
+
+                    let value = self.value_from_expr(&expr, current_id.clone());
+
+                    let mut inputs = HashMap::new();
+                    inputs.insert("VALUE".to_string(), value);
+
+                    let next_id = if (index + 1) >= body.len() {
+                        None
+                    } else {
+                        Some(self.peek_next_block_id())
+                    };
+
+                    self.push_block(
+                        &Block {
+                            opcode: "data_setvariableto".to_string(),
+                            parent: Some(parent_id.clone()),
+                            inputs: Some(inputs),
+                            fields: Some(json!({"VARIABLE": [var_name, var_id]})),
+                            next: next_id,
+                            ..Block::default()
+                        },
+                        current_id,
+                    );
+                }
 
                 _ => panic!("statment: {:#?} not valid in body", stmt),
             }
@@ -1294,6 +1337,7 @@ impl Compiler {
     fn push_var(&mut self, scope: Scope, var_name: String, var_type: Type) -> String {
         // add an empty hashmap for the scope if it doesn't exist within the var table
         // TODO: add heiarchy to scope
+        // FIXME: this is completely broken, trusting the user to not redeclare vars for now lol
         if !self
             .var_table
             .clone()
@@ -1303,7 +1347,7 @@ impl Compiler {
         {
             self.var_table.insert(scope.clone(), HashMap::new());
         } else {
-            panic!("variable {:?} already exists in scope", var_name);
+            // panic!("variable {:?} already exists in scope", var_name);
         }
 
         let var_id = self.gen_var_id().to_string();

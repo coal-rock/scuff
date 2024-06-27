@@ -1,6 +1,7 @@
 event flag_clicked {
 	let x: string = ("1" & "1");
 	let y: number = (1 * 2);
-	let y: number = (1 * 2);
+	y = (1 * 3);
+	y += (10 * y);
 	say(y);
 }
