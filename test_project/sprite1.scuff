@@ -1,7 +1,15 @@
 event flag_clicked {
-	let x: string = ("1" & "1");
-	let y: number = (1 * 2);
-	y = (1 * 3);
-	y += (10 * y);
-	say(y);
+	let x: number = 0;
+
+	if (1 == 1) {
+		// should work
+		x += 1;
+	}
+
+	if (2 == 2) {
+		let y: number = 0;
+	}
+
+	// shouldn't work
+	//y += 1;
 }
