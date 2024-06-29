@@ -1,5 +1,3 @@
-use std::{i8, io::Write};
-
 use crate::{
     error::parse_error,
     extract,
@@ -11,6 +9,7 @@ pub enum Expr {
     Number(f64),
     String(String),
     Identifier(String),
+    FunctionCall(String, Vec<Expr>),
     Bool(bool),
     Binary(Box<Expr>, Operator, Box<Expr>),
 }
@@ -48,9 +47,10 @@ pub enum Stmt {
     VariableMutation(String, MutationOperator, Expr),
     FunctionDeclaration(String, Vec<(String, Type)>, Vec<Stmt>, Type), // name, arguments, body, return type
     EventHandler(Event, Vec<Stmt>),                                    // event, body
-    FunctionCall(String, Vec<Expr>),                                   // name, arguments
+    FunctionCall(String, Vec<Expr>),                                   // name, argumentsparser
     If(Expr, Vec<Stmt>, Option<Vec<Stmt>>), // condition, block if true, block if false
     While(Expr, Vec<Stmt>),                 // condition, block if true
+    Return(Expr),
 }
 
 pub struct Parser {
@@ -138,6 +138,26 @@ impl Parser {
         self.advance();
 
         body_statements
+    }
+
+    fn parse_function_call(&mut self) -> Vec<Expr> {
+        self.expect(TokenType::LeftParen);
+
+        let mut args: Vec<Expr> = Vec::new();
+
+        while self.peek_next() != TokenType::RightParen {
+            let arg = self.parse_expression();
+
+            if self.peek_next() == TokenType::Comma {
+                self.advance();
+            }
+
+            args.push(arg);
+        }
+
+        self.expect(TokenType::RightParen);
+
+        args
     }
 
     fn parse_statement(&mut self) -> Stmt {
@@ -254,23 +274,8 @@ impl Parser {
             TokenType::Ident(ident) => match self.peek_next() {
                 // function call
                 TokenType::LeftParen => {
-                    self.expect(TokenType::LeftParen);
-
-                    let mut args: Vec<Expr> = Vec::new();
-
-                    while self.peek_next() != TokenType::RightParen {
-                        let arg = self.parse_expression();
-
-                        if self.peek_next() == TokenType::Comma {
-                            self.advance();
-                        }
-
-                        args.push(arg);
-                    }
-
-                    self.expect(TokenType::RightParen);
+                    let args = self.parse_function_call();
                     self.expect(TokenType::Semicolon);
-
                     self.advance();
                     Stmt::FunctionCall(ident, args)
                 }
@@ -323,6 +328,13 @@ impl Parser {
 
                 Stmt::While(condition, body)
             }
+            TokenType::Return => {
+                let return_value = self.parse_expression();
+                println!("{:#?}", return_value);
+                self.expect(TokenType::Semicolon);
+                self.advance();
+                Stmt::Return(return_value)
+            }
             _ => panic!("Unhandled token in statement: {:?}", self.current_token()),
         }
     }
@@ -331,7 +343,10 @@ impl Parser {
         match self.advance() {
             TokenType::Number(value) => Expr::Number(value),
             TokenType::String(value) => Expr::String(value),
-            TokenType::Ident(value) => Expr::Identifier(value),
+            TokenType::Ident(value) => match self.peek_next() {
+                TokenType::LeftParen => Expr::FunctionCall(value, self.parse_function_call()),
+                _ => Expr::Identifier(value),
+            },
             TokenType::Bool(value) => Expr::Bool(value),
             TokenType::LeftParen => {
                 let left = self.parse_expression();

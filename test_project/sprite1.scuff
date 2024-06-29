@@ -1,15 +1,7 @@
+function return_test() -> string {
+	return "fortnite";
+}
+
 event flag_clicked {
-	let x: number = 0;
-
-	if (1 == 1) {
-		// should work
-		x += 1;
-	}
-
-	if (2 == 2) {
-		let y: number = 0;
-	}
-
-	// shouldn't work
-	//y += 1;
+	let x: string = return_test();
 }

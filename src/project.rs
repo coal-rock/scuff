@@ -98,22 +98,31 @@ pub struct Block {
     pub mutation: Option<Mutation>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct Mutation {
     // this struct is fucked up, and it's not my fault
     // scratch demands these values as the string casted,
     // quote-escaped serialized versions of their json-equivalent
     // why this is i have absolutely no clue
+    //
+    // in all seriousness, i should prob just skip
+    // typing on this struct, and replace it with a:
+    // serde::Value
     pub tag_name: String,
     pub children: Vec<String>,
-    pub proccode: String,
-    pub argumentids: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hasnext: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub proccode: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub argumentids: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub argumentnames: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub argumentdefaults: Option<String>,
-    pub warp: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub warp: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
