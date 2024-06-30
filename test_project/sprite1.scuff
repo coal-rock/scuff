@@ -4,4 +4,6 @@ function return_test() -> string {
 
 event flag_clicked {
 	let x: string = return_test();
+	x = "asd";
+	x = return_test();
 }

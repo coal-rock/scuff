@@ -25,100 +25,17 @@
 			"lists": {},
 			"broadcasts": {},
 			"blocks": {
-				"b": {
-					"opcode": "procedures_definition",
-					"next": "e",
-					"inputs": {
-						"custom_block": [
-							1,
-							"a"
-						]
-					},
-					"topLevel": true
-				},
-				"f": {
-					"opcode": "operator_join",
-					"parent": "e",
-					"inputs": {
-						"STRING2": [
-							3,
-							"h",
-							[
-								10,
-								""
-							]
-						],
-						"STRING1": [
-							3,
-							"g",
-							[
-								10,
-								""
-							]
-						]
-					},
-					"shadow": false,
-					"topLevel": false
-				},
-				"d": {
-					"opcode": "argument_reporter_string_number",
-					"parent": "a",
-					"fields": {
-						"VALUE": [
-							"arg2",
-							null
-						]
-					},
-					"shadow": true,
-					"topLevel": false
-				},
-				"h": {
-					"opcode": "argument_reporter_string_number",
-					"parent": "f",
-					"fields": {
-						"VALUE": [
-							"arg2",
-							null
-						]
-					},
-					"shadow": false,
-					"topLevel": false
-				},
-				"g": {
-					"opcode": "argument_reporter_string_number",
-					"parent": "f",
-					"fields": {
-						"VALUE": [
-							"arg1",
-							null
-						]
-					},
-					"shadow": false,
-					"topLevel": false
-				},
-				"c": {
-					"opcode": "argument_reporter_string_number",
-					"parent": "a",
-					"fields": {
-						"VALUE": [
-							"arg1",
-							null
-						]
-					},
-					"shadow": true,
-					"topLevel": false
-				},
 				"a": {
 					"opcode": "procedures_prototype",
 					"parent": "b",
 					"inputs": {
-						"arg_2": [
-							1,
-							"d"
-						],
 						"arg_1": [
 							1,
 							"c"
+						],
+						"arg_2": [
+							1,
+							"d"
 						]
 					},
 					"shadow": true,
@@ -133,37 +50,53 @@
 						"warp": "false"
 					}
 				},
-				"i": {
-					"opcode": "event_whenflagclicked",
-					"next": "j",
-					"topLevel": true
+				"c": {
+					"opcode": "argument_reporter_string_number",
+					"parent": "a",
+					"fields": {
+						"VALUE": [
+							"arg1",
+							null
+						]
+					},
+					"shadow": true,
+					"topLevel": false
 				},
-				"j": {
-					"opcode": "procedures_call",
-					"parent": "i",
+				"d": {
+					"opcode": "argument_reporter_string_number",
+					"parent": "a",
+					"fields": {
+						"VALUE": [
+							"arg2",
+							null
+						]
+					},
+					"shadow": true,
+					"topLevel": false
+				},
+				"f": {
+					"opcode": "operator_join",
+					"parent": "e",
 					"inputs": {
-						"arg_2": [
-							1,
+						"STRING1": [
+							3,
+							"g",
 							[
 								10,
-								"world!"
+								""
 							]
 						],
-						"arg_1": [
-							1,
+						"STRING2": [
+							3,
+							"h",
 							[
 								10,
-								"Hello, "
+								""
 							]
 						]
 					},
-					"mutation": {
-						"tagName": "mutation",
-						"children": [],
-						"proccode": "join_and_say %s %s",
-						"argumentids": "[\"arg_1\", \"arg_2\"]",
-						"warp": "false"
-					}
+					"shadow": false,
+					"topLevel": false
 				},
 				"e": {
 					"opcode": "looks_say",
@@ -178,6 +111,73 @@
 							]
 						]
 					}
+				},
+				"j": {
+					"opcode": "procedures_call",
+					"parent": "i",
+					"inputs": {
+						"arg_1": [
+							1,
+							[
+								10,
+								"Hello, "
+							]
+						],
+						"arg_2": [
+							1,
+							[
+								10,
+								"world!"
+							]
+						]
+					},
+					"mutation": {
+						"tagName": "mutation",
+						"children": [],
+						"proccode": "join_and_say %s %s",
+						"argumentids": "[\"arg_1\", \"arg_2\"]",
+						"warp": "false"
+					}
+				},
+				"g": {
+					"opcode": "argument_reporter_string_number",
+					"parent": "f",
+					"fields": {
+						"VALUE": [
+							"arg1",
+							null
+						]
+					},
+					"shadow": false,
+					"topLevel": false
+				},
+				"i": {
+					"opcode": "event_whenflagclicked",
+					"next": "j",
+					"topLevel": true
+				},
+				"b": {
+					"opcode": "procedures_definition",
+					"next": "e",
+					"inputs": {
+						"custom_block": [
+							1,
+							"a"
+						]
+					},
+					"topLevel": true
+				},
+				"h": {
+					"opcode": "argument_reporter_string_number",
+					"parent": "f",
+					"fields": {
+						"VALUE": [
+							"arg2",
+							null
+						]
+					},
+					"shadow": false,
+					"topLevel": false
 				}
 			},
 			"comments": {},

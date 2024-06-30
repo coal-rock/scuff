@@ -13,13 +13,13 @@ pub struct Compiler {
     project: Project,
     targets: Vec<(TargetData, Vec<Stmt>)>,
     current_target: (TargetData, Vec<Stmt>),
+    next_block_id: Option<String>,
     block_id: usize,
     /// maps variables to their scope
     /// ```
     /// HashMap<ScopePath, HashMap<VarName, (VarId, VarType)>>
     var_table: HashMap<Vec<String>, HashMap<String, (String, Type)>>,
     var_id: usize,
-    scope_id: usize,
     /// ```
     /// let function_table = arg_table.get(function_name)?;
     /// let (arg_id, arg_name) = function_table[arg_position]?;
@@ -43,11 +43,11 @@ impl Compiler {
             arg_id: 0,
             arg_table: HashMap::new(),
             var_id: 0,
-            scope_id: 0,
             target_index: 0,
             parent: None,
             scope_path: Vec::new(),
             var_table: HashMap::new(),
+            next_block_id: None,
         }
     }
 
@@ -148,11 +148,11 @@ impl Compiler {
     }
 
     fn compile_binary_expr(&mut self, expression: &Expr, parent_id: String, current_id: String) {
+        if parent_id == "a" {
+            panic!()
+        }
+
         match expression {
-            Expr::Number(_) => todo!(),
-            Expr::String(_) => todo!(),
-            Expr::Identifier(_) => todo!(),
-            Expr::Bool(_) => todo!(),
             Expr::Binary(left, op, right) => match op {
                 // string concat lol
                 Operator::Ampersand => {
@@ -337,7 +337,7 @@ impl Compiler {
                     (key2.to_string(), val2),
                 ])),
                 shadow: Some(false),
-                top_level: Some(true),
+                top_level: Some(false),
                 ..Default::default()
             },
             current_id,
@@ -374,7 +374,7 @@ impl Compiler {
             inputs.insert("SUBSTACK2".to_string(), json!([2, substack_id]));
         }
 
-        let next_id = if (index + 1) >= body_len {
+        self.next_block_id = if (index + 1) >= body_len {
             None
         } else {
             Some(self.peek_next_block_id())
@@ -383,7 +383,7 @@ impl Compiler {
         self.push_block(
             &Block {
                 opcode: opcode.to_string(),
-                next: next_id,
+                next: self.next_block_id.clone(),
                 parent: Some(parent_id.clone()),
                 inputs: Some(inputs),
                 shadow: Some(false),
@@ -435,7 +435,7 @@ impl Compiler {
             Expr::Binary(_, op, _) => {
                 // TODO: type checking here, some operators can't be used as input for other operators
                 let id = self.gen_block_id();
-                self.compile_binary_expr(expr, parent_id.clone(), id.clone());
+                self.compile_binary_expr(expr, current_id.unwrap(), id.clone());
                 // TODO: the "3" here shouldn't be static, see comments above
                 // Project::Inputs
                 //
@@ -447,7 +447,6 @@ impl Compiler {
                 json!([3, id.to_string(), [10, ""]])
             }
             Expr::FunctionCall(func_name, args) => {
-                println!("FORTNITE FORTNITE FORTNITE {:#?}", parent_id);
                 self.compile_function_call(
                     func_name.clone(),
                     args.clone(),
@@ -495,7 +494,7 @@ impl Compiler {
                     let value = json!([1, [10, string,]]);
                     inputs.insert("MESSAGE".to_string(), value);
 
-                    let next_id = if (index + 1) >= body_len {
+                    self.next_block_id = if (index + 1) >= body_len {
                         None
                     } else {
                         Some(self.peek_next_block_id())
@@ -506,7 +505,7 @@ impl Compiler {
                             opcode: "looks_say".to_string(),
                             parent: Some(parent_id.clone()),
                             inputs: Some(inputs),
-                            next: next_id,
+                            next: self.next_block_id.clone(),
                             ..Block::default()
                         },
                         current_id,
@@ -546,7 +545,7 @@ impl Compiler {
                     let mut inputs = HashMap::new();
                     inputs.insert("MESSAGE".to_string(), value);
 
-                    let next_id = if (index + 1) >= body_len {
+                    self.next_block_id = if (index + 1) >= body_len {
                         None
                     } else {
                         Some(self.peek_next_block_id())
@@ -557,7 +556,7 @@ impl Compiler {
                             opcode: "looks_say".to_string(),
                             parent: Some(parent_id.clone()),
                             inputs: Some(inputs),
-                            next: next_id,
+                            next: self.next_block_id.clone(),
                             ..Block::default()
                         },
                         looks_say_id.clone(),
@@ -572,7 +571,7 @@ impl Compiler {
                     let mut inputs = HashMap::new();
                     inputs.insert("MESSAGE".to_string(), json!([3, new_id, [10, ""]]));
 
-                    let next_id = if (index + 1) >= body_len {
+                    self.next_block_id = if (index + 1) >= body_len {
                         None
                     } else {
                         Some(self.peek_next_block_id())
@@ -583,7 +582,7 @@ impl Compiler {
                             opcode: "looks_say".to_string(),
                             parent: Some(parent_id.to_string()),
                             inputs: Some(inputs),
-                            next: next_id,
+                            next: self.next_block_id.clone(),
                             ..Block::default()
                         },
                         current_id,
@@ -663,7 +662,7 @@ impl Compiler {
 
                 argument_ids.push_str("]");
 
-                let next_id = if (index + 1) >= body_len {
+                self.next_block_id = if (index + 1) >= body_len {
                     None
                 } else {
                     Some(self.peek_next_block_id())
@@ -684,7 +683,7 @@ impl Compiler {
                             warp: Some("false".to_string()),
                             ..Default::default()
                         }),
-                        next: next_id,
+                        next: self.next_block_id.clone(),
                         ..Block::default()
                     },
                     current_id,
@@ -714,19 +713,25 @@ impl Compiler {
                     body.len(),
                 ),
                 Stmt::VariableDeclaration(var_name, var_type, expr) => {
-                    let next_id = if (index + 1) >= body.len() {
-                        None
-                    } else {
-                        Some(self.peek_next_block_id())
-                    };
+                    println!(
+                        "FORTNITE (DECLARATION) ->\n current: {} - parent: {} - next: {:?}",
+                        current_id.clone(),
+                        parent_id.clone(),
+                        self.next_block_id,
+                    );
 
-                    self.compile_variable_declaration(
+                    let var_id =
+                        self.push_var(self.scope_path.clone(), var_name.clone(), var_type.clone());
+
+                    self.compile_variable_assignment(
                         var_name.clone(),
+                        var_id,
                         var_type.clone(),
                         expr,
                         current_id,
                         parent_id.clone(),
-                        next_id,
+                        index,
+                        body.len(),
                     );
                 }
                 Stmt::While(cond, body_true) => {
@@ -767,28 +772,25 @@ impl Compiler {
                     }
                 }
                 Stmt::VariableAssignment(var_name, expr) => {
-                    let var_id = self.get_var_id(self.scope_path.clone(), var_name.to_string());
-                    let value = self.value_from_expr(expr, current_id.clone(), None);
+                    let (var_id, var_type) =
+                        self.get_var(self.scope_path.clone(), var_name.to_string());
 
-                    let mut inputs = HashMap::new();
-                    inputs.insert("VALUE".to_string(), value);
+                    println!(
+                        "FORTNITE (ASSIGNMENT) ->\n current: {} - parent: {} - next: {:?}",
+                        current_id.clone(),
+                        parent_id.clone(),
+                        self.next_block_id,
+                    );
 
-                    let next_id = if (index + 1) >= body.len() {
-                        None
-                    } else {
-                        Some(self.peek_next_block_id())
-                    };
-
-                    self.push_block(
-                        &Block {
-                            opcode: "data_setvariableto".to_string(),
-                            parent: Some(parent_id.clone()),
-                            inputs: Some(inputs),
-                            fields: Some(json!({"VARIABLE": [var_name, var_id]})),
-                            next: next_id,
-                            ..Block::default()
-                        },
+                    self.compile_variable_assignment(
+                        var_name.clone(),
+                        var_id,
+                        var_type.clone(),
+                        expr,
                         current_id,
+                        parent_id.clone(),
+                        index,
+                        body.len(),
                     );
                 }
                 Stmt::VariableMutation(var_name, op, mutation_value) => {
@@ -813,7 +815,7 @@ impl Compiler {
                     let mut inputs = HashMap::new();
                     inputs.insert("VALUE".to_string(), value);
 
-                    let next_id = if (index + 1) >= body.len() {
+                    self.next_block_id = if (index + 1) >= body.len() {
                         None
                     } else {
                         Some(self.peek_next_block_id())
@@ -825,7 +827,7 @@ impl Compiler {
                             parent: Some(parent_id.clone()),
                             inputs: Some(inputs),
                             fields: Some(json!({"VARIABLE": [var_name, var_id]})),
-                            next: next_id,
+                            next: self.next_block_id.clone(),
                             ..Block::default()
                         },
                         current_id,
@@ -883,26 +885,38 @@ impl Compiler {
         self.scope_path.pop();
     }
 
-    fn compile_variable_declaration(
+    fn compile_variable_assignment(
         &mut self,
         var_name: String,
+        var_id: String,
         var_type: Type,
         expr: &Expr,
         current_id: String,
         parent_id: String,
-        next_id: Option<String>,
+        index: usize,
+        body_len: usize,
     ) {
-        // TODO: handle expressions, idents
-        let var_id = self.push_var(self.scope_path.clone(), var_name.clone(), var_type.clone());
-
         let value = self.value_from_expr(expr, parent_id.clone(), Some(current_id.clone()));
+
+        println!(
+            "FORTNITE (AFTER) ->\n current: {} - parent: {} - next: {:?}",
+            current_id.clone(),
+            parent_id.clone(),
+            self.next_block_id,
+        );
 
         let mut inputs = HashMap::new();
         inputs.insert("VALUE".to_string(), value);
 
-        let current_id = match expr {
-            Expr::FunctionCall(_, _) => self.gen_block_id(),
-            _ => current_id.clone(),
+        // let current_id = match expr {
+        //     Expr::FunctionCall(_, _) => self.gen_block_id(),
+        //     _ => current_id.clone(),
+        // };
+
+        self.next_block_id = if (index + 1) >= body_len {
+            None
+        } else {
+            Some(self.peek_next_block_id())
         };
 
         self.push_block(
@@ -911,7 +925,7 @@ impl Compiler {
                 parent: Some(parent_id.clone()),
                 inputs: Some(inputs),
                 fields: Some(json!({"VARIABLE": [var_name, var_id]})),
-                next: next_id,
+                next: self.next_block_id.clone(),
                 ..Block::default()
             },
             current_id,
@@ -925,7 +939,7 @@ impl Compiler {
                 Event::FlagClicked => {
                     let flag_id = self.gen_block_id();
 
-                    let next_id = if body.len() > 0 {
+                    self.next_block_id = if body.len() > 0 {
                         Some(self.peek_next_block_id())
                     } else {
                         None
@@ -934,7 +948,7 @@ impl Compiler {
                     self.push_block(
                         &Block {
                             opcode: "event_whenflagclicked".to_string(),
-                            next: next_id,
+                            next: self.next_block_id.clone(),
                             top_level: Some(true),
                             ..Block::default()
                         },
@@ -1084,6 +1098,11 @@ impl Compiler {
     }
 
     fn push_block(&mut self, block: &Block, id: String) {
+        println!(
+            "BLOCK PUSHED [{}] -> [{:?}]: {}",
+            id, self.next_block_id, block.opcode
+        );
+
         self.project.targets[self.target_index]
             .blocks
             .insert(id, block.clone());
@@ -1137,7 +1156,10 @@ impl Compiler {
     }
 
     fn get_var_id(&self, scope_path: Vec<String>, var_name: String) -> String {
-        println!("{:#?} {:#?}", scope_path, var_name);
+        self.get_var(scope_path, var_name).0
+    }
+
+    fn get_var(&self, scope_path: Vec<String>, var_name: String) -> (String, Type) {
         let mut scope_path = scope_path.clone();
 
         // this is really bad
@@ -1162,13 +1184,13 @@ impl Compiler {
                 }
             }
 
-            return var.unwrap().0.to_string();
+            return var.unwrap().clone();
         }
     }
 
     fn var_exists(&self, scope_path: Vec<String>, var_name: String) -> bool {
-        let scoped_table = self.var_table.get(&scope_path);
-        let scoped_table = if let Some(table) = scoped_table {
+        let scope_table = self.var_table.get(&scope_path);
+        let scoped_table = if let Some(table) = scope_table {
             table
         } else {
             return false;
